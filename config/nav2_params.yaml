@@ -240,11 +240,15 @@ global_costmap:
       robot_radius: 0.22
       resolution: 0.05
       track_unknown_space: true
-      rolling_window: true         # Use rolling window with Hector SLAM
-      width: 15                    # 15m x 15m rolling window
-      height: 15
-      plugins: ["obstacle_layer", "inflation_layer"]
+      rolling_window: false        # Use static map from Hector SLAM
+      plugins: ["static_layer", "obstacle_layer", "inflation_layer"]
       use_sim_time: true
+      static_layer:
+        plugin: "nav2_costmap_2d::StaticLayer"
+        enabled: True
+        map_subscribe_transient_local: False  # Hector publishes with volatile QoS
+        subscribe_to_updates: True
+        map_topic: /map
       obstacle_layer:
         plugin: "nav2_costmap_2d::ObstacleLayer"
         enabled: True
