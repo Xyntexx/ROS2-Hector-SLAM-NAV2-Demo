@@ -26,20 +26,23 @@ cleanup() {
 # Source ROS2 and workspace
 echo "Sourcing ROS2 and workspace..."
 source /opt/ros/jazzy/setup.bash
-source install/setup.bash
+source install/setup.bash 2>/dev/null || source install/setup.bash
 
 # Set TurtleBot3 model
 export TURTLEBOT3_MODEL=burger
 
 # Kill any existing processes (before starting new ones)
-# Disable job control messages
+# Disable job control messages and errexit
 set +m
+set +e
 echo "Cleaning up any existing processes..."
-pkill -f gazebo 2>/dev/null || true
-pkill -f "gz sim" 2>/dev/null || true
-pkill -f rviz2 2>/dev/null || true
+killall -q gazebo 2>/dev/null || true
+killall -q gzserver 2>/dev/null || true
+killall -q gzclient 2>/dev/null || true
+killall -q rviz2 2>/dev/null || true
 pkill -f hector_mapping 2>/dev/null || true
 sleep 3
+echo "Cleanup complete."
 
 # Set trap to cleanup on script exit AFTER initial cleanup
 trap cleanup EXIT INT TERM
