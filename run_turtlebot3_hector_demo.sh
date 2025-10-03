@@ -9,18 +9,23 @@ cd "$SCRIPT_DIR"
 
 # Function to cleanup on exit
 cleanup() {
+    # Prevent re-entry
+    trap - EXIT INT TERM
+
     echo ""
     echo "Cleaning up all processes..."
+
     # Kill the tracked PIDs
-    kill $GAZEBO_PID $STATIC_TF_PID $HECTOR_PID $RVIZ_PID 2>/dev/null
+    kill $GAZEBO_PID $STATIC_TF_PID $HECTOR_PID $RVIZ_PID 2>/dev/null || true
+
     # Also kill any remaining processes by name to catch child processes
-    pkill -f "gz sim" 2>/dev/null || true
-    pkill -f "gazebo" 2>/dev/null || true
-    pkill -f "hector_mapping" 2>/dev/null || true
-    pkill -f "static_transform_publisher.*base_footprint.*base_scan" 2>/dev/null || true
-    pkill -f "rviz2.*turtlebot3_hector" 2>/dev/null || true
-    wait 2>/dev/null
+    killall -9 gz gzserver gzclient 2>/dev/null || true
+    pkill -9 -f "hector_mapping" 2>/dev/null || true
+    pkill -9 -f "static_transform_publisher.*base_footprint" 2>/dev/null || true
+    pkill -9 -f "rviz2" 2>/dev/null || true
+
     echo "TurtleBot3 + Hector SLAM demo stopped."
+    exit 0
 }
 
 # Source ROS2 and workspace

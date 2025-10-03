@@ -9,28 +9,33 @@ cd "$SCRIPT_DIR"
 
 # Function to cleanup on exit
 cleanup() {
+    # Prevent re-entry
+    trap - EXIT INT TERM
+
     echo ""
     echo "Cleaning up all processes..."
+
     # Kill the tracked PIDs
-    kill $GAZEBO_PID $STATIC_TF_PID $HECTOR_PID $NAV2_PID $RVIZ_PID 2>/dev/null
+    kill $GAZEBO_PID $STATIC_TF_PID $HECTOR_PID $NAV2_PID $RVIZ_PID 2>/dev/null || true
+
     # Also kill any remaining processes by name to catch child processes
-    pkill -f "gz sim" 2>/dev/null || true
-    pkill -f "gazebo" 2>/dev/null || true
-    pkill -f "hector_mapping" 2>/dev/null || true
-    pkill -f "static_transform_publisher.*base_footprint.*base_scan" 2>/dev/null || true
-    pkill -f "rviz2.*turtlebot3_hector" 2>/dev/null || true
-    pkill -f "bt_navigator" 2>/dev/null || true
-    pkill -f "controller_server" 2>/dev/null || true
-    pkill -f "planner_server" 2>/dev/null || true
-    pkill -f "smoother_server" 2>/dev/null || true
-    pkill -f "behavior_server" 2>/dev/null || true
-    pkill -f "waypoint_follower" 2>/dev/null || true
-    pkill -f "velocity_smoother" 2>/dev/null || true
-    pkill -f "lifecycle_manager" 2>/dev/null || true
-    pkill -f "docking_server" 2>/dev/null || true
-    pkill -f "collision_monitor" 2>/dev/null || true
-    wait 2>/dev/null
+    killall -9 gz gzserver gzclient 2>/dev/null || true
+    pkill -9 -f "hector_mapping" 2>/dev/null || true
+    pkill -9 -f "static_transform_publisher.*base_footprint" 2>/dev/null || true
+    pkill -9 -f "rviz2" 2>/dev/null || true
+    pkill -9 -f "bt_navigator" 2>/dev/null || true
+    pkill -9 -f "controller_server" 2>/dev/null || true
+    pkill -9 -f "planner_server" 2>/dev/null || true
+    pkill -9 -f "smoother_server" 2>/dev/null || true
+    pkill -9 -f "behavior_server" 2>/dev/null || true
+    pkill -9 -f "waypoint_follower" 2>/dev/null || true
+    pkill -9 -f "velocity_smoother" 2>/dev/null || true
+    pkill -9 -f "lifecycle_manager" 2>/dev/null || true
+    pkill -9 -f "docking_server" 2>/dev/null || true
+    pkill -9 -f "collision_monitor" 2>/dev/null || true
+
     echo "TurtleBot3 + Hector SLAM + NAV2 demo stopped."
+    exit 0
 }
 
 # Source ROS2 and workspace
