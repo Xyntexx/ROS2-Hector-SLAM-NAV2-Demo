@@ -15,10 +15,9 @@ ros2 run nav2_controller controller_server --ros-args \
 ros2 run nav2_planner planner_server --ros-args \
   --params-file $PARAMS_FILE -p use_sim_time:=true &
 
-# Behavior server (remap cmd_vel to avoid conflict with controller)
+# Behavior server
 ros2 run nav2_behaviors behavior_server --ros-args \
-  --params-file $PARAMS_FILE -p use_sim_time:=true \
-  -r cmd_vel:=cmd_vel_backup &
+  --params-file $PARAMS_FILE -p use_sim_time:=true &
 
 # BT Navigator
 ros2 run nav2_bt_navigator bt_navigator --ros-args \
