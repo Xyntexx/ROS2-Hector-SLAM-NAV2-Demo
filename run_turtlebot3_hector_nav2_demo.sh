@@ -17,7 +17,7 @@ cleanup() {
 
     # Kill the tracked PIDs
     kill $GAZEBO_PID $STATIC_TF_PID $HECTOR_PID $RVIZ_PID 2>/dev/null || true
-    kill $CONTROLLER_PID $PLANNER_PID $BEHAVIOR_PID $BT_NAV_PID $WAYPOINT_PID $SMOOTHER_PID $VELOCITY_PID $LIFECYCLE_PID 2>/dev/null || true
+    kill $CONTROLLER_PID $PLANNER_PID $BEHAVIOR_PID $BT_NAV_PID $WAYPOINT_PID $SMOOTHER_PID $LIFECYCLE_PID 2>/dev/null || true
 
     # Also kill any remaining processes by name to catch child processes
     killall -9 gz gzserver gzclient 2>/dev/null || true
@@ -30,7 +30,6 @@ cleanup() {
     pkill -9 -f "smoother_server" 2>/dev/null || true
     pkill -9 -f "behavior_server" 2>/dev/null || true
     pkill -9 -f "waypoint_follower" 2>/dev/null || true
-    pkill -9 -f "velocity_smoother" 2>/dev/null || true
     pkill -9 -f "lifecycle_manager" 2>/dev/null || true
     pkill -9 -f "docking_server" 2>/dev/null || true
     pkill -9 -f "collision_monitor" 2>/dev/null || true
@@ -140,17 +139,11 @@ ros2 run nav2_smoother smoother_server --ros-args \
   -p use_sim_time:=true &
 SMOOTHER_PID=$!
 
-# Velocity smoother
-ros2 run nav2_velocity_smoother velocity_smoother --ros-args \
-  --params-file $PARAMS_FILE \
-  -p use_sim_time:=true &
-VELOCITY_PID=$!
-
 # Lifecycle manager (to bring everything up)
 ros2 run nav2_lifecycle_manager lifecycle_manager --ros-args \
   --params-file $PARAMS_FILE \
   -p use_sim_time:=true \
-  -p node_names:="['controller_server','planner_server','behavior_server','bt_navigator','waypoint_follower','smoother_server','velocity_smoother']" \
+  -p node_names:="['controller_server','planner_server','behavior_server','bt_navigator','waypoint_follower','smoother_server']" \
   -p autostart:=true &
 LIFECYCLE_PID=$!
 
