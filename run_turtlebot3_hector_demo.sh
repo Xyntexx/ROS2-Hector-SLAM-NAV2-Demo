@@ -10,7 +10,7 @@ cd "$SCRIPT_DIR"
 # Source ROS2 and workspace
 echo "Sourcing ROS2 and workspace..."
 source /opt/ros/jazzy/setup.bash
-source hector_slam_ros2/install/setup.bash
+source install/setup.bash
 
 # Set TurtleBot3 model
 export TURTLEBOT3_MODEL=burger
@@ -20,22 +20,21 @@ echo "Cleaning up existing processes..."
 pkill -f gazebo || true
 pkill -f rviz2 || true
 pkill -f hector_mapping || true
-pkill -f robot_state_publisher || true
 sleep 3
 
 echo "Starting TurtleBot3 + Hector SLAM Demo..."
 
-# Start TurtleBot3 Gazebo world
+# Start TurtleBot3 Gazebo world (includes robot_state_publisher)
 echo "1. Starting TurtleBot3 Gazebo world..."
 ros2 launch turtlebot3_gazebo turtlebot3_world.launch.py &
 GAZEBO_PID=$!
-sleep 8
+sleep 10
 
-# Start robot state publisher
-echo "2. Starting robot state publisher..."
-ros2 launch turtlebot3_bringup robot_state_publisher.launch.py use_sim_time:=true &
-RSP_PID=$!
-sleep 3
+# Start static transform publisher (Required for TF tree)
+echo "2. Starting static transform publisher..."
+ros2 run tf2_ros static_transform_publisher --x 0 --y 0 --z 0.08 --qx 0 --qy 0 --qz 0 --qw 1 --frame-id base_footprint --child-frame-id base_scan &
+STATIC_TF_PID=$!
+sleep 2
 
 # Start Hector mapping with TurtleBot3 frame
 echo "3. Starting Hector SLAM mapping..."
@@ -57,7 +56,7 @@ RVIZ_PID=$!
 echo ""
 echo "=== TurtleBot3 + Hector SLAM Demo Started Successfully ==="
 echo "Gazebo PID: $GAZEBO_PID"
-echo "Robot State Publisher PID: $RSP_PID"
+echo "Static TF PID: $STATIC_TF_PID"
 echo "Hector PID: $HECTOR_PID"
 echo "RViz PID: $RVIZ_PID"
 echo ""
@@ -68,14 +67,21 @@ echo "Or use manual control:"
 echo "ros2 topic pub /cmd_vel geometry_msgs/msg/Twist \"{linear: {x: 0.2, y: 0, z: 0}, angular: {x: 0, y: 0, z: 0.5}}\" --rate 10"
 echo ""
 echo "To stop all processes, run:"
-echo "kill $GAZEBO_PID $RSP_PID $HECTOR_PID $RVIZ_PID"
+echo "kill $GAZEBO_PID $STATIC_TF_PID $HECTOR_PID $RVIZ_PID"
 echo ""
 echo "Press Ctrl+C to stop this script and all processes..."
 
 # Function to cleanup on exit
 cleanup() {
-    echo "Cleaning up..."
-    kill $GAZEBO_PID $RSP_PID $HECTOR_PID $RVIZ_PID 2>/dev/null
+    echo "Cleaning up all processes..."
+    # Kill the tracked PIDs
+    kill $GAZEBO_PID $STATIC_TF_PID $HECTOR_PID $RVIZ_PID 2>/dev/null
+    # Also kill any remaining processes by name to catch child processes
+    pkill -f "gz sim" 2>/dev/null || true
+    pkill -f "gazebo" 2>/dev/null || true
+    pkill -f "hector_mapping" 2>/dev/null || true
+    pkill -f "static_transform_publisher.*base_footprint.*base_scan" 2>/dev/null || true
+    pkill -f "rviz2.*turtlebot3_hector" 2>/dev/null || true
     wait
     echo "TurtleBot3 + Hector SLAM demo stopped."
 }
