@@ -54,6 +54,7 @@ bt_navigator:
     default_server_timeout: 20
     wait_for_service_timeout: 1000
     action_server_result_timeout: 900.0
+    enable_stamped_cmd_vel: true
     navigators: ["navigate_to_pose", "navigate_through_poses"]
     navigate_to_pose:
       plugin: "nav2_bt_navigator::NavigateToPoseNavigator"
@@ -92,6 +93,7 @@ controller_server:
     goal_checker_plugins: ["general_goal_checker"]
     controller_plugins: ["FollowPath"]
     use_realtime_priority: false
+    enable_stamped_cmd_vel: true
     use_sim_time: true
 
     progress_checker:
@@ -276,6 +278,7 @@ planner_server:
     expected_planner_frequency: 20.0
     planner_plugins: ["GridBased"]
     costmap_update_timeout: 1.0
+    enable_stamped_cmd_vel: true
     use_sim_time: true
     GridBased:
       plugin: "nav2_navfn_planner::NavfnPlanner"
@@ -286,6 +289,7 @@ planner_server:
 smoother_server:
   ros__parameters:
     smoother_plugins: ["simple_smoother"]
+    enable_stamped_cmd_vel: true
     use_sim_time: true
     simple_smoother:
       plugin: "nav2_smoother::SimpleSmoother"
@@ -301,6 +305,7 @@ behavior_server:
     global_footprint_topic: global_costmap/published_footprint
     cycle_frequency: 10.0
     behavior_plugins: ["spin", "backup", "drive_on_heading", "assisted_teleop", "wait"]
+    enable_stamped_cmd_vel: true
     use_sim_time: true
     spin:
       plugin: "nav2_behaviors::Spin"
