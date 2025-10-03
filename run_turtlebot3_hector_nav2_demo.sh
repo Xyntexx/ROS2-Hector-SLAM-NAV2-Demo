@@ -7,6 +7,34 @@ echo "=== TurtleBot3 + Hector SLAM + NAV2 Demo Setup ==="
 SCRIPT_DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" &> /dev/null && pwd )"
 cd "$SCRIPT_DIR"
 
+# Function to cleanup on exit
+cleanup() {
+    echo ""
+    echo "Cleaning up all processes..."
+    # Kill the tracked PIDs
+    kill $GAZEBO_PID $STATIC_TF_PID $HECTOR_PID $NAV2_PID $RVIZ_PID 2>/dev/null
+    # Also kill any remaining processes by name to catch child processes
+    pkill -f "gz sim" 2>/dev/null || true
+    pkill -f "gazebo" 2>/dev/null || true
+    pkill -f "hector_mapping" 2>/dev/null || true
+    pkill -f "static_transform_publisher.*base_footprint.*base_scan" 2>/dev/null || true
+    pkill -f "rviz2.*turtlebot3_hector" 2>/dev/null || true
+    pkill -f "nav2" 2>/dev/null || true
+    pkill -f "bt_navigator" 2>/dev/null || true
+    pkill -f "controller_server" 2>/dev/null || true
+    pkill -f "planner_server" 2>/dev/null || true
+    pkill -f "smoother_server" 2>/dev/null || true
+    pkill -f "behavior_server" 2>/dev/null || true
+    pkill -f "waypoint_follower" 2>/dev/null || true
+    pkill -f "velocity_smoother" 2>/dev/null || true
+    pkill -f "lifecycle_manager" 2>/dev/null || true
+    wait 2>/dev/null
+    echo "TurtleBot3 + Hector SLAM + NAV2 demo stopped."
+}
+
+# Set trap to cleanup on script exit
+trap cleanup EXIT INT TERM
+
 # Source ROS2 and workspace
 echo "Sourcing ROS2 and workspace..."
 source /opt/ros/jazzy/setup.bash
@@ -15,21 +43,21 @@ source install/setup.bash
 # Set TurtleBot3 model
 export TURTLEBOT3_MODEL=burger
 
-# Kill any existing processes
-echo "Cleaning up existing processes..."
-pkill -f gazebo || true
-pkill -f "gz sim" || true
-pkill -f rviz2 || true
-pkill -f hector_mapping || true
-pkill -f nav2 || true
-pkill -f bt_navigator || true
-pkill -f controller_server || true
-pkill -f planner_server || true
-pkill -f smoother_server || true
-pkill -f behavior_server || true
-pkill -f waypoint_follower || true
-pkill -f velocity_smoother || true
-pkill -f lifecycle_manager || true
+# Kill any existing processes (before starting new ones)
+echo "Cleaning up any existing processes..."
+pkill -f gazebo 2>/dev/null || true
+pkill -f "gz sim" 2>/dev/null || true
+pkill -f rviz2 2>/dev/null || true
+pkill -f hector_mapping 2>/dev/null || true
+pkill -f nav2 2>/dev/null || true
+pkill -f bt_navigator 2>/dev/null || true
+pkill -f controller_server 2>/dev/null || true
+pkill -f planner_server 2>/dev/null || true
+pkill -f smoother_server 2>/dev/null || true
+pkill -f behavior_server 2>/dev/null || true
+pkill -f waypoint_follower 2>/dev/null || true
+pkill -f velocity_smoother 2>/dev/null || true
+pkill -f lifecycle_manager 2>/dev/null || true
 sleep 3
 
 echo "Starting TurtleBot3 + Hector SLAM + NAV2 Demo..."
@@ -90,32 +118,7 @@ echo "kill $GAZEBO_PID $STATIC_TF_PID $HECTOR_PID $NAV2_PID $RVIZ_PID"
 echo ""
 echo "Press Ctrl+C to stop this script and all processes..."
 
-# Function to cleanup on exit
-cleanup() {
-    echo "Cleaning up all processes..."
-    # Kill the tracked PIDs
-    kill $GAZEBO_PID $STATIC_TF_PID $HECTOR_PID $NAV2_PID $RVIZ_PID 2>/dev/null
-    # Also kill any remaining processes by name to catch child processes
-    pkill -f "gz sim" 2>/dev/null || true
-    pkill -f "gazebo" 2>/dev/null || true
-    pkill -f "hector_mapping" 2>/dev/null || true
-    pkill -f "static_transform_publisher.*base_footprint.*base_scan" 2>/dev/null || true
-    pkill -f "rviz2.*turtlebot3_hector" 2>/dev/null || true
-    pkill -f "nav2" 2>/dev/null || true
-    pkill -f "bt_navigator" 2>/dev/null || true
-    pkill -f "controller_server" 2>/dev/null || true
-    pkill -f "planner_server" 2>/dev/null || true
-    pkill -f "smoother_server" 2>/dev/null || true
-    pkill -f "behavior_server" 2>/dev/null || true
-    pkill -f "waypoint_follower" 2>/dev/null || true
-    pkill -f "velocity_smoother" 2>/dev/null || true
-    pkill -f "lifecycle_manager" 2>/dev/null || true
-    wait
-    echo "TurtleBot3 + Hector SLAM + NAV2 demo stopped."
-}
-
-# Set trap to cleanup on script exit
-trap cleanup EXIT
-
-# Wait for user to stop
-wait
+# Keep script running until interrupted
+while true; do
+    sleep 1
+done

@@ -7,6 +7,25 @@ echo "=== TurtleBot3 + Hector SLAM Demo Setup ==="
 SCRIPT_DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" &> /dev/null && pwd )"
 cd "$SCRIPT_DIR"
 
+# Function to cleanup on exit
+cleanup() {
+    echo ""
+    echo "Cleaning up all processes..."
+    # Kill the tracked PIDs
+    kill $GAZEBO_PID $STATIC_TF_PID $HECTOR_PID $RVIZ_PID 2>/dev/null
+    # Also kill any remaining processes by name to catch child processes
+    pkill -f "gz sim" 2>/dev/null || true
+    pkill -f "gazebo" 2>/dev/null || true
+    pkill -f "hector_mapping" 2>/dev/null || true
+    pkill -f "static_transform_publisher.*base_footprint.*base_scan" 2>/dev/null || true
+    pkill -f "rviz2.*turtlebot3_hector" 2>/dev/null || true
+    wait 2>/dev/null
+    echo "TurtleBot3 + Hector SLAM demo stopped."
+}
+
+# Set trap to cleanup on script exit
+trap cleanup EXIT INT TERM
+
 # Source ROS2 and workspace
 echo "Sourcing ROS2 and workspace..."
 source /opt/ros/jazzy/setup.bash
@@ -15,11 +34,12 @@ source install/setup.bash
 # Set TurtleBot3 model
 export TURTLEBOT3_MODEL=burger
 
-# Kill any existing processes
-echo "Cleaning up existing processes..."
-pkill -f gazebo || true
-pkill -f rviz2 || true
-pkill -f hector_mapping || true
+# Kill any existing processes (before starting new ones)
+echo "Cleaning up any existing processes..."
+pkill -f gazebo 2>/dev/null || true
+pkill -f "gz sim" 2>/dev/null || true
+pkill -f rviz2 2>/dev/null || true
+pkill -f hector_mapping 2>/dev/null || true
 sleep 3
 
 echo "Starting TurtleBot3 + Hector SLAM Demo..."
@@ -71,23 +91,7 @@ echo "kill $GAZEBO_PID $STATIC_TF_PID $HECTOR_PID $RVIZ_PID"
 echo ""
 echo "Press Ctrl+C to stop this script and all processes..."
 
-# Function to cleanup on exit
-cleanup() {
-    echo "Cleaning up all processes..."
-    # Kill the tracked PIDs
-    kill $GAZEBO_PID $STATIC_TF_PID $HECTOR_PID $RVIZ_PID 2>/dev/null
-    # Also kill any remaining processes by name to catch child processes
-    pkill -f "gz sim" 2>/dev/null || true
-    pkill -f "gazebo" 2>/dev/null || true
-    pkill -f "hector_mapping" 2>/dev/null || true
-    pkill -f "static_transform_publisher.*base_footprint.*base_scan" 2>/dev/null || true
-    pkill -f "rviz2.*turtlebot3_hector" 2>/dev/null || true
-    wait
-    echo "TurtleBot3 + Hector SLAM demo stopped."
-}
-
-# Set trap to cleanup on script exit
-trap cleanup EXIT
-
-# Wait for user to stop
-wait
+# Keep script running until interrupted
+while true; do
+    sleep 1
+done
