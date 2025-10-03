@@ -238,9 +238,10 @@ global_costmap:
       robot_radius: 0.22
       resolution: 0.05
       track_unknown_space: true
-      use_map_topic: true          # read SLAM map directly
-      rolling_window: false
-      plugins: ["static_layer", "obstacle_layer", "inflation_layer"]
+      rolling_window: true         # Use rolling window with Hector SLAM
+      width: 15                    # 15m x 15m rolling window
+      height: 15
+      plugins: ["obstacle_layer", "inflation_layer"]
       use_sim_time: true
       obstacle_layer:
         plugin: "nav2_costmap_2d::ObstacleLayer"
@@ -256,9 +257,6 @@ global_costmap:
           raytrace_min_range: 0.0
           obstacle_max_range: 2.5
           obstacle_min_range: 0.0
-      static_layer:
-        plugin: "nav2_costmap_2d::StaticLayer"
-        map_subscribe_transient_local: True
       inflation_layer:
         plugin: "nav2_costmap_2d::InflationLayer"
         cost_scaling_factor: 3.0
