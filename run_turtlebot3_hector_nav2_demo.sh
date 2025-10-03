@@ -16,13 +16,14 @@ cleanup() {
     echo "Cleaning up all processes..."
 
     # Kill the tracked PIDs
-    kill $GAZEBO_PID $STATIC_TF_PID $HECTOR_PID $RVIZ_PID 2>/dev/null || true
+    kill $GAZEBO_PID $STATIC_TF_PID $HECTOR_PID $TWIST_MUX_PID $RVIZ_PID 2>/dev/null || true
     kill $CONTROLLER_PID $PLANNER_PID $BEHAVIOR_PID $BT_NAV_PID $WAYPOINT_PID $SMOOTHER_PID $LIFECYCLE_PID 2>/dev/null || true
 
     # Also kill any remaining processes by name to catch child processes
     killall -9 gz gzserver gzclient 2>/dev/null || true
     pkill -9 -f "hector_mapping" 2>/dev/null || true
     pkill -9 -f "static_transform_publisher.*base_footprint" 2>/dev/null || true
+    pkill -9 -f "twist_mux" 2>/dev/null || true
     pkill -9 -f "rviz2" 2>/dev/null || true
     pkill -9 -f "bt_navigator" 2>/dev/null || true
     pkill -9 -f "controller_server" 2>/dev/null || true
@@ -56,6 +57,7 @@ killall -q gzserver 2>/dev/null || true
 killall -q gzclient 2>/dev/null || true
 killall -q rviz2 2>/dev/null || true
 pkill -f hector_mapping 2>/dev/null || true
+pkill -f twist_mux 2>/dev/null || true
 pkill -f bt_navigator 2>/dev/null || true
 pkill -f controller_server 2>/dev/null || true
 pkill -f planner_server 2>/dev/null || true
@@ -98,15 +100,24 @@ ros2 run hector_mapping hector_mapping_node --ros-args \
 HECTOR_PID=$!
 sleep 5
 
+# Start twist_mux for cmd_vel multiplexing
+echo "4. Starting twist_mux..."
+ros2 run twist_mux twist_mux --ros-args \
+  --params-file "$SCRIPT_DIR/config/twist_mux.yaml" \
+  -r cmd_vel_out:=cmd_vel &
+TWIST_MUX_PID=$!
+sleep 2
+
 # Start NAV2 stack (without AMCL and docking since Hector provides localization)
-echo "4. Starting NAV2 navigation stack..."
+echo "5. Starting NAV2 navigation stack..."
 
 PARAMS_FILE="$SCRIPT_DIR/config/nav2_params.yaml"
 
-# Controller server
+# Controller server (remap cmd_vel to cmd_vel_nav for twist_mux)
 ros2 run nav2_controller controller_server --ros-args \
   --params-file $PARAMS_FILE \
-  -p use_sim_time:=true &
+  -p use_sim_time:=true \
+  -r cmd_vel:=cmd_vel_nav &
 CONTROLLER_PID=$!
 
 # Planner server
@@ -115,10 +126,11 @@ ros2 run nav2_planner planner_server --ros-args \
   -p use_sim_time:=true &
 PLANNER_PID=$!
 
-# Behavior server
+# Behavior server (remap cmd_vel to cmd_vel_behaviors for twist_mux)
 ros2 run nav2_behaviors behavior_server --ros-args \
   --params-file $PARAMS_FILE \
-  -p use_sim_time:=true &
+  -p use_sim_time:=true \
+  -r cmd_vel:=cmd_vel_behaviors &
 BEHAVIOR_PID=$!
 
 # BT Navigator
@@ -153,7 +165,7 @@ echo "NAV2 nodes starting..."
 sleep 10
 
 # Start RViz with TurtleBot3 config
-echo "5. Starting RViz2..."
+echo "6. Starting RViz2..."
 rviz2 -d "$SCRIPT_DIR/config/turtlebot3_hector_slam_config.rviz" &
 RVIZ_PID=$!
 
@@ -162,6 +174,7 @@ echo "=== TurtleBot3 + Hector SLAM + NAV2 Demo Started Successfully ==="
 echo "Gazebo PID: $GAZEBO_PID"
 echo "Static TF PID: $STATIC_TF_PID"
 echo "Hector PID: $HECTOR_PID"
+echo "Twist Mux PID: $TWIST_MUX_PID"
 echo "NAV2 Controller PID: $CONTROLLER_PID"
 echo "NAV2 Planner PID: $PLANNER_PID"
 echo "NAV2 BT Navigator PID: $BT_NAV_PID"

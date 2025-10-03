@@ -7,17 +7,26 @@ cd /home/owner/hector_ws
 
 PARAMS_FILE="$PWD/config/nav2_params.yaml"
 
-# Controller server
+# Start twist_mux for cmd_vel multiplexing
+echo "Starting twist_mux..."
+ros2 run twist_mux twist_mux --ros-args \
+  --params-file "$PWD/config/twist_mux.yaml" \
+  -r cmd_vel_out:=cmd_vel &
+sleep 2
+
+# Controller server (remap cmd_vel to cmd_vel_nav for twist_mux)
 ros2 run nav2_controller controller_server --ros-args \
-  --params-file $PARAMS_FILE -p use_sim_time:=true &
+  --params-file $PARAMS_FILE -p use_sim_time:=true \
+  -r cmd_vel:=cmd_vel_nav &
 
 # Planner server
 ros2 run nav2_planner planner_server --ros-args \
   --params-file $PARAMS_FILE -p use_sim_time:=true &
 
-# Behavior server
+# Behavior server (remap cmd_vel to cmd_vel_behaviors for twist_mux)
 ros2 run nav2_behaviors behavior_server --ros-args \
-  --params-file $PARAMS_FILE -p use_sim_time:=true &
+  --params-file $PARAMS_FILE -p use_sim_time:=true \
+  -r cmd_vel:=cmd_vel_behaviors &
 
 # BT Navigator
 ros2 run nav2_bt_navigator bt_navigator --ros-args \
