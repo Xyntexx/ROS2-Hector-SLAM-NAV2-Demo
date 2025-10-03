@@ -15,9 +15,10 @@ ros2 run nav2_controller controller_server --ros-args \
 ros2 run nav2_planner planner_server --ros-args \
   --params-file $PARAMS_FILE -p use_sim_time:=true &
 
-# Behavior server
+# Behavior server (remap cmd_vel to avoid conflict with controller)
 ros2 run nav2_behaviors behavior_server --ros-args \
-  --params-file $PARAMS_FILE -p use_sim_time:=true &
+  --params-file $PARAMS_FILE -p use_sim_time:=true \
+  -r cmd_vel:=cmd_vel_backup &
 
 # BT Navigator
 ros2 run nav2_bt_navigator bt_navigator --ros-args \
@@ -31,14 +32,10 @@ ros2 run nav2_waypoint_follower waypoint_follower --ros-args \
 ros2 run nav2_smoother smoother_server --ros-args \
   --params-file $PARAMS_FILE -p use_sim_time:=true &
 
-# Velocity smoother
-ros2 run nav2_velocity_smoother velocity_smoother --ros-args \
-  --params-file $PARAMS_FILE -p use_sim_time:=true &
-
 # Lifecycle manager (activates all NAV2 nodes)
 ros2 run nav2_lifecycle_manager lifecycle_manager --ros-args \
   --params-file $PARAMS_FILE -p use_sim_time:=true \
-  -p node_names:="['controller_server','planner_server','behavior_server','bt_navigator','waypoint_follower','smoother_server','velocity_smoother']" \
+  -p node_names:="['controller_server','planner_server','behavior_server','bt_navigator','waypoint_follower','smoother_server']" \
   -p autostart:=true &
 
 echo ""
