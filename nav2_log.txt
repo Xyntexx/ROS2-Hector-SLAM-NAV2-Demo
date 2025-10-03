@@ -1,0 +1,472 @@
+cd ~/hector_ws
+./start_nav2_manual.sh
+Starting NAV2 components manually...
+
+NAV2 nodes starting...
+Wait 10-15 seconds for initialization before sending navigation goals
+
+[INFO] [1759504560.960830789] [behavior_server]:
+        behavior_server lifecycle node launched.
+        Waiting on external lifecycle transitions to activate
+        See https://design.ros2.org/articles/node_lifecycle.html for more information.
+[INFO] [1759504560.961092875] [controller_server]:
+        controller_server lifecycle node launched.
+        Waiting on external lifecycle transitions to activate
+        See https://design.ros2.org/articles/node_lifecycle.html for more information.
+[INFO] [1759504560.964837490] [controller_server]: Creating controller server
+[INFO] [1759504560.979682936] [local_costmap.local_costmap]:
+        local_costmap lifecycle node launched.
+        Waiting on external lifecycle transitions to activate
+        See https://design.ros2.org/articles/node_lifecycle.html for more information.
+[INFO] [1759504560.980143295] [local_costmap.local_costmap]: Creating Costmap
+[INFO] [1759504560.996549239] [planner_server]:
+        planner_server lifecycle node launched.
+        Waiting on external lifecycle transitions to activate
+        See https://design.ros2.org/articles/node_lifecycle.html for more information.
+[INFO] [1759504560.997931969] [planner_server]: Creating
+[INFO] [1759504561.016808822] [global_costmap.global_costmap]:
+        global_costmap lifecycle node launched.
+        Waiting on external lifecycle transitions to activate
+        See https://design.ros2.org/articles/node_lifecycle.html for more information.
+[INFO] [1759504561.017093022] [global_costmap.global_costmap]: Creating Costmap
+[INFO] [1759504561.604451474] [bt_navigator]:
+        bt_navigator lifecycle node launched.
+        Waiting on external lifecycle transitions to activate
+        See https://design.ros2.org/articles/node_lifecycle.html for more information.
+[INFO] [1759504561.608697840] [velocity_smoother]:
+        velocity_smoother lifecycle node launched.
+        Waiting on external lifecycle transitions to activate
+        See https://design.ros2.org/articles/node_lifecycle.html for more information.
+[INFO] [1759504561.610038376] [lifecycle_manager]: Creating
+[INFO] [1759504561.611183533] [bt_navigator]: Creating
+[INFO] [1759504561.625815895] [smoother_server]:
+        smoother_server lifecycle node launched.
+        Waiting on external lifecycle transitions to activate
+        See https://design.ros2.org/articles/node_lifecycle.html for more information.
+[INFO] [1759504561.627081603] [waypoint_follower]:
+        waypoint_follower lifecycle node launched.
+        Waiting on external lifecycle transitions to activate
+        See https://design.ros2.org/articles/node_lifecycle.html for more information.
+[INFO] [1759504561.627401373] [lifecycle_manager]: Creating and initializing lifecycle service clients
+[INFO] [1759504561.627422887] [waypoint_follower]: Creating
+[INFO] [1759504561.628704527] [smoother_server]: Creating smoother server
+[INFO] [1759504561.660454766] [lifecycle_manager]: Starting managed nodes bringup...
+[INFO] [1759504561.660488191] [lifecycle_manager]: Configuring controller_server
+[INFO] [1759504561.660706279] [controller_server]: Configuring controller interface
+[INFO] [1759504561.660737589] [controller_server]: getting progress checker plugins..
+[INFO] [1759504561.661102611] [controller_server]: getting goal checker plugins..
+[INFO] [1759504561.661366456] [controller_server]: Controller frequency set to 20.0000Hz
+[INFO] [1759504561.661425177] [local_costmap.local_costmap]: Configuring
+[INFO] [1759504561.669871647] [local_costmap.local_costmap]: Using plugin "voxel_layer"
+[INFO] [1759504561.673489778] [local_costmap.local_costmap]: Subscribed to Topics: scan
+[INFO] [1759504561.684138939] [local_costmap.local_costmap]: Initialized plugin "voxel_layer"
+[INFO] [1759504561.684508663] [local_costmap.local_costmap]: Using plugin "inflation_layer"
+[INFO] [1759504561.684926586] [local_costmap.local_costmap]: Initialized plugin "inflation_layer"
+[INFO] [1759504561.700491379] [controller_server]: Created progress_checker : progress_checker of type nav2_controller::SimpleProgressChecker
+[INFO] [1759504561.700818748] [controller_server]: Controller Server has progress_checker  progress checkers available.
+[INFO] [1759504561.701423358] [controller_server]: Created goal checker : general_goal_checker of type nav2_controller::SimpleGoalChecker
+[INFO] [1759504561.701668130] [controller_server]: Controller Server has general_goal_checker  goal checkers available.
+[INFO] [1759504561.702946098] [controller_server]: Created controller : FollowPath of type nav2_mppi_controller::MPPIController
+[INFO] [1759504561.705156840] [controller_server]: Controller period is equal to model dt. Control sequence shifting is ON
+[INFO] [1759504561.706816995] [controller_server]: ConstraintCritic instantiated with 1 power and 4.000000 weight.
+[INFO] [1759504561.707015826] [controller_server]: Critic loaded : mppi::critics::ConstraintCritic
+[INFO] [1759504561.708643010] [controller_server]: InflationCostCritic instantiated with 1 power and 300.000000 / 0.015000 weights. Critic will collision check based on circular cost.
+[INFO] [1759504561.708974159] [controller_server]: Critic loaded : mppi::critics::CostCritic
+[INFO] [1759504561.709744601] [controller_server]: GoalCritic instantiated with 1 power and 5.000000 weight.
+[INFO] [1759504561.709911903] [controller_server]: Critic loaded : mppi::critics::GoalCritic
+[INFO] [1759504561.710569853] [controller_server]: GoalAngleCritic instantiated with 1 power, 3.000000 weight, and 0.500000 angular threshold.
+[INFO] [1759504561.710602985] [controller_server]: Critic loaded : mppi::critics::GoalAngleCritic
+[INFO] [1759504561.711213749] [controller_server]: ReferenceTrajectoryCritic instantiated with 1 power and 14.000000 weight
+[INFO] [1759504561.711418515] [controller_server]: Critic loaded : mppi::critics::PathAlignCritic
+[INFO] [1759504561.712006526] [controller_server]: Critic loaded : mppi::critics::PathFollowCritic
+[INFO] [1759504561.712620052] [controller_server]: PathAngleCritic instantiated with 1 power and 2.000000 weight. Mode set to: Forward Preference
+[INFO] [1759504561.713001337] [controller_server]: Critic loaded : mppi::critics::PathAngleCritic
+[INFO] [1759504561.713470859] [controller_server]: PreferForwardCritic instantiated with 1 power and 5.000000 weight.
+[INFO] [1759504561.713487460] [controller_server]: Critic loaded : mppi::critics::PreferForwardCritic
+[INFO] [1759504561.715539034] [controller_server]: Optimizer reset
+[INFO] [1759504561.718870613] [MPPIController]: Configured MPPI Controller: FollowPath
+[INFO] [1759504561.719067863] [controller_server]: Controller Server has FollowPath  controllers available.
+[INFO] [1759504561.725898544] [lifecycle_manager]: Configuring planner_server
+[INFO] [1759504561.726093760] [planner_server]: Configuring
+[INFO] [1759504561.726118967] [global_costmap.global_costmap]: Configuring
+[INFO] [1759504561.734153456] [global_costmap.global_costmap]: Using plugin "static_layer"
+[INFO] [1759504561.737668264] [global_costmap.global_costmap]: Subscribing to the map topic (/map) with transient local durability
+[INFO] [1759504561.739830123] [global_costmap.global_costmap]: Initialized plugin "static_layer"
+[INFO] [1759504561.739850486] [global_costmap.global_costmap]: Using plugin "obstacle_layer"
+[INFO] [1759504561.741004777] [global_costmap.global_costmap]: Subscribed to Topics: scan
+[INFO] [1759504561.744656176] [global_costmap.global_costmap]: Initialized plugin "obstacle_layer"
+[INFO] [1759504561.744687929] [global_costmap.global_costmap]: Using plugin "inflation_layer"
+[INFO] [1759504561.745988327] [global_costmap.global_costmap]: Initialized plugin "inflation_layer"
+[WARN] [1759504561.772519079] [global_costmap.global_costmap]: New publisher discovered on topic '/map', offering incompatible QoS. No messages will be sent to it. Last incompatible policy: DURABILITY_QOS_POLICY
+[INFO] [1759504561.772930222] [planner_server]: Created global planner plugin GridBased of type nav2_navfn_planner::NavfnPlanner
+[INFO] [1759504561.772952865] [planner_server]: Configuring plugin GridBased of type NavfnPlanner
+[INFO] [1759504561.773415694] [planner_server]: Planner Server has GridBased  planners available.
+[INFO] [1759504561.783051397] [lifecycle_manager]: Configuring behavior_server
+[INFO] [1759504561.783242070] [behavior_server]: Configuring
+[INFO] [1759504561.787743831] [behavior_server]: Creating behavior plugin spin of type nav2_behaviors::Spin
+[INFO] [1759504561.789446901] [behavior_server]: Creating behavior plugin backup of type nav2_behaviors::BackUp
+[INFO] [1759504561.790560963] [behavior_server]: Creating behavior plugin drive_on_heading of type nav2_behaviors::DriveOnHeading
+[INFO] [1759504561.791885796] [behavior_server]: Creating behavior plugin assisted_teleop of type nav2_behaviors::AssistedTeleop
+[INFO] [1759504561.793991773] [behavior_server]: Creating behavior plugin wait of type nav2_behaviors::Wait
+[INFO] [1759504561.801987477] [behavior_server]: Configuring spin
+[INFO] [1759504561.811817595] [behavior_server]: Configuring backup
+[INFO] [1759504561.819340687] [behavior_server]: Configuring drive_on_heading
+[INFO] [1759504561.827401734] [behavior_server]: Configuring assisted_teleop
+[INFO] [1759504561.832857185] [behavior_server]: Configuring wait
+[INFO] [1759504561.837386218] [lifecycle_manager]: Configuring bt_navigator
+[INFO] [1759504561.837632016] [bt_navigator]: Configuring
+[INFO] [1759504561.846056419] [bt_navigator]: Creating navigator id navigate_to_pose of type nav2_bt_navigator::NavigateToPoseNavigator
+[WARN] [1759504561.849607737] [bt_navigator]: Error_code parameters were not set. Using default values of: follow_path_error_code compute_path_error_code
+Make sure these match your BT and there are not other sources of error codes youreported to your application
+[INFO] [1759504561.908838233] [bt_navigator]: Creating navigator id navigate_through_poses of type nav2_bt_navigator::NavigateThroughPosesNavigator
+[INFO] [1759504561.926378005] [lifecycle_manager]: Configuring waypoint_follower
+[INFO] [1759504561.926775832] [waypoint_follower]: Configuring
+[INFO] [1759504561.948521358] [waypoint_follower]: Created waypoint_task_executor : wait_at_waypoint of type nav2_waypoint_follower::WaitAtWaypoint
+[INFO] [1759504561.949274235] [lifecycle_manager]: Configuring smoother_server
+[INFO] [1759504561.949523443] [smoother_server]: Configuring smoother server
+[INFO] [1759504561.961486389] [smoother_server]: Created smoother : simple_smoother of type nav2_smoother::SimpleSmoother
+[INFO] [1759504561.962150763] [smoother_server]: Smoother Server has simple_smoother  smoothers available.
+[INFO] [1759504561.970043821] [lifecycle_manager]: Configuring velocity_smoother
+[INFO] [1759504561.970212866] [velocity_smoother]: Configuring velocity smoother
+[INFO] [1759504561.974025788] [lifecycle_manager]: Activating controller_server
+[INFO] [1759504561.974181763] [controller_server]: Activating
+[INFO] [1759504561.974204456] [local_costmap.local_costmap]: Activating
+[INFO] [1759504561.974211934] [local_costmap.local_costmap]: Checking transform
+[INFO] [1759504561.974305965] [local_costmap.local_costmap]: start
+[WARN] [1759504562.225784699] [controller_server]: Parameter controller_server.verbose not found
+[INFO] [1759504562.234063017] [controller_server]: Optimizer reset
+[INFO] [1759504562.235496337] [MPPIController]: Activated MPPI Controller: FollowPath
+[INFO] [1759504562.235592457] [controller_server]: Creating bond (controller_server) to lifecycle manager.
+[INFO] [1759504562.348909267] [lifecycle_manager]: Server controller_server connected with bond.
+[INFO] [1759504562.348951009] [lifecycle_manager]: Activating planner_server
+[INFO] [1759504562.349208846] [planner_server]: Activating
+[INFO] [1759504562.349243468] [global_costmap.global_costmap]: Activating
+[INFO] [1759504562.349256687] [global_costmap.global_costmap]: Checking transform
+[INFO] [1759504562.349478775] [global_costmap.global_costmap]: start
+[WARN] [1759504563.349738744] [nav2_costmap_2d]: Robot is out of bounds of the costmap!
+[WARN] [1759504563.349834604] [global_costmap.global_costmap]: Sensor origin at (-0.03, 0.00) is out of map bounds (0.00, 0.00) to (4.98, 4.98). The costmap cannot raytrace for it.
+[INFO] [1759504563.400274013] [planner_server]: Activating plugin GridBased of type NavfnPlanner
+[INFO] [1759504563.401373488] [planner_server]: Creating bond (planner_server) to lifecycle manager.
+[INFO] [1759504563.508578257] [lifecycle_manager]: Server planner_server connected with bond.
+[INFO] [1759504563.508776880] [lifecycle_manager]: Activating behavior_server
+[INFO] [1759504563.510689966] [behavior_server]: Activating
+[INFO] [1759504563.510795083] [behavior_server]: Activating spin
+[INFO] [1759504563.510840398] [behavior_server]: Activating backup
+[INFO] [1759504563.510875633] [behavior_server]: Activating drive_on_heading
+[INFO] [1759504563.510909479] [behavior_server]: Activating assisted_teleop
+[INFO] [1759504563.510943059] [behavior_server]: Activating wait
+[INFO] [1759504563.513129977] [behavior_server]: Creating bond (behavior_server) to lifecycle manager.
+[INFO] [1759504563.631230539] [lifecycle_manager]: Server behavior_server connected with bond.
+[INFO] [1759504563.631277204] [lifecycle_manager]: Activating bt_navigator
+[INFO] [1759504563.631504565] [bt_navigator]: Activating
+[INFO] [1759504563.714039645] [bt_navigator]: Creating bond (bt_navigator) to lifecycle manager.
+[INFO] [1759504563.817537187] [lifecycle_manager]: Server bt_navigator connected with bond.
+[INFO] [1759504563.817570917] [lifecycle_manager]: Activating waypoint_follower
+[INFO] [1759504563.817751534] [waypoint_follower]: Activating
+[INFO] [1759504563.817777389] [waypoint_follower]: Creating bond (waypoint_follower) to lifecycle manager.
+[INFO] [1759504563.922093251] [lifecycle_manager]: Server waypoint_follower connected with bond.
+[INFO] [1759504563.922138365] [lifecycle_manager]: Activating smoother_server
+[INFO] [1759504563.922431116] [smoother_server]: Activating
+[INFO] [1759504563.922465472] [smoother_server]: Creating bond (smoother_server) to lifecycle manager.
+[INFO] [1759504564.032513968] [lifecycle_manager]: Server smoother_server connected with bond.
+[INFO] [1759504564.032741382] [lifecycle_manager]: Activating velocity_smoother
+[INFO] [1759504564.033054039] [velocity_smoother]: Activating
+[INFO] [1759504564.033107345] [velocity_smoother]: Creating bond (velocity_smoother) to lifecycle manager.
+[INFO] [1759504564.142651330] [lifecycle_manager]: Server velocity_smoother connected with bond.
+[INFO] [1759504564.142695002] [lifecycle_manager]: Managed nodes are active
+[INFO] [1759504564.142709914] [lifecycle_manager]: Creating bond timer...
+[WARN] [1759504564.349538741] [nav2_costmap_2d]: Robot is out of bounds of the costmap!
+[WARN] [1759504564.349783291] [global_costmap.global_costmap]: Sensor origin at (-0.03, 0.00) is out of map bounds (0.00, 0.00) to (4.98, 4.98). The costmap cannot raytrace for it.
+[WARN] [1759504565.349509585] [nav2_costmap_2d]: Robot is out of bounds of the costmap!
+[WARN] [1759504565.349543888] [global_costmap.global_costmap]: Sensor origin at (-0.03, 0.00) is out of map bounds (0.00, 0.00) to (4.98, 4.98). The costmap cannot raytrace for it.
+[WARN] [1759504566.349503423] [nav2_costmap_2d]: Robot is out of bounds of the costmap!
+[WARN] [1759504566.349529025] [global_costmap.global_costmap]: Sensor origin at (-0.03, -0.00) is out of map bounds (0.00, 0.00) to (4.98, 4.98). The costmap cannot raytrace for it.
+[WARN] [1759504567.349523886] [nav2_costmap_2d]: Robot is out of bounds of the costmap!
+[WARN] [1759504567.349561101] [global_costmap.global_costmap]: Sensor origin at (-0.03, -0.00) is out of map bounds (0.00, 0.00) to (4.98, 4.98). The costmap cannot raytrace for it.
+[WARN] [1759504568.350389599] [nav2_costmap_2d]: Robot is out of bounds of the costmap!
+[WARN] [1759504568.350458638] [global_costmap.global_costmap]: Sensor origin at (-0.04, 0.00) is out of map bounds (0.00, 0.00) to (4.98, 4.98). The costmap cannot raytrace for it.
+[WARN] [1759504569.349490516] [nav2_costmap_2d]: Robot is out of bounds of the costmap!
+[WARN] [1759504569.349520221] [global_costmap.global_costmap]: Sensor origin at (-0.03, -0.00) is out of map bounds (0.00, 0.00) to (4.98, 4.98). The costmap cannot raytrace for it.
+[WARN] [1759504570.349524528] [nav2_costmap_2d]: Robot is out of bounds of the costmap!
+[WARN] [1759504570.349578856] [global_costmap.global_costmap]: Sensor origin at (-0.04, -0.00) is out of map bounds (0.00, 0.00) to (4.98, 4.98). The costmap cannot raytrace for it.
+[WARN] [1759504571.349505039] [nav2_costmap_2d]: Robot is out of bounds of the costmap!
+[WARN] [1759504571.349550258] [global_costmap.global_costmap]: Sensor origin at (-0.03, 0.00) is out of map bounds (0.00, 0.00) to (4.98, 4.98). The costmap cannot raytrace for it.
+[WARN] [1759504572.349554061] [nav2_costmap_2d]: Robot is out of bounds of the costmap!
+[WARN] [1759504572.349596022] [global_costmap.global_costmap]: Sensor origin at (-0.03, -0.00) is out of map bounds (0.00, 0.00) to (4.98, 4.98). The costmap cannot raytrace for it.
+[WARN] [1759504572.349651651] [global_costmap.global_costmap]: Can't update static costmap layer, no map received
+[WARN] [1759504573.349512082] [nav2_costmap_2d]: Robot is out of bounds of the costmap!
+[WARN] [1759504573.349740454] [global_costmap.global_costmap]: Sensor origin at (-0.03, 0.00) is out of map bounds (0.00, 0.00) to (4.98, 4.98). The costmap cannot raytrace for it.
+[WARN] [1759504574.349507809] [nav2_costmap_2d]: Robot is out of bounds of the costmap!
+[WARN] [1759504574.349550694] [global_costmap.global_costmap]: Sensor origin at (-0.03, -0.00) is out of map bounds (0.00, 0.00) to (4.98, 4.98). The costmap cannot raytrace for it.
+[WARN] [1759504575.349436653] [nav2_costmap_2d]: Robot is out of bounds of the costmap!
+[WARN] [1759504575.349459323] [global_costmap.global_costmap]: Sensor origin at (-0.03, 0.00) is out of map bounds (0.00, 0.00) to (4.98, 4.98). The costmap cannot raytrace for it.
+[WARN] [1759504576.349477327] [nav2_costmap_2d]: Robot is out of bounds of the costmap!
+[WARN] [1759504576.349502095] [global_costmap.global_costmap]: Sensor origin at (-0.04, 0.00) is out of map bounds (0.00, 0.00) to (4.98, 4.98). The costmap cannot raytrace for it.
+[WARN] [1759504577.349554470] [nav2_costmap_2d]: Robot is out of bounds of the costmap!
+[WARN] [1759504577.349698275] [global_costmap.global_costmap]: Sensor origin at (-0.04, -0.00) is out of map bounds (0.00, 0.00) to (4.98, 4.98). The costmap cannot raytrace for it.
+[WARN] [1759504578.349567549] [nav2_costmap_2d]: Robot is out of bounds of the costmap!
+[WARN] [1759504578.349778146] [global_costmap.global_costmap]: Sensor origin at (-0.03, 0.00) is out of map bounds (0.00, 0.00) to (4.98, 4.98). The costmap cannot raytrace for it.
+[WARN] [1759504579.349485596] [nav2_costmap_2d]: Robot is out of bounds of the costmap!
+[WARN] [1759504579.349514350] [global_costmap.global_costmap]: Sensor origin at (-0.03, -0.00) is out of map bounds (0.00, 0.00) to (4.98, 4.98). The costmap cannot raytrace for it.
+[WARN] [1759504580.349519757] [nav2_costmap_2d]: Robot is out of bounds of the costmap!
+[WARN] [1759504580.349557726] [global_costmap.global_costmap]: Sensor origin at (-0.03, 0.00) is out of map bounds (0.00, 0.00) to (4.98, 4.98). The costmap cannot raytrace for it.
+[WARN] [1759504581.349546042] [nav2_costmap_2d]: Robot is out of bounds of the costmap!
+[WARN] [1759504581.349591956] [global_costmap.global_costmap]: Sensor origin at (-0.03, 0.00) is out of map bounds (0.00, 0.00) to (4.98, 4.98). The costmap cannot raytrace for it.
+[WARN] [1759504582.349491983] [nav2_costmap_2d]: Robot is out of bounds of the costmap!
+[WARN] [1759504582.349528120] [global_costmap.global_costmap]: Sensor origin at (-0.03, 0.00) is out of map bounds (0.00, 0.00) to (4.98, 4.98). The costmap cannot raytrace for it.
+[WARN] [1759504582.349578744] [global_costmap.global_costmap]: Can't update static costmap layer, no map received
+[WARN] [1759504583.349497223] [nav2_costmap_2d]: Robot is out of bounds of the costmap!
+[WARN] [1759504583.349535422] [global_costmap.global_costmap]: Sensor origin at (-0.03, 0.00) is out of map bounds (0.00, 0.00) to (4.98, 4.98). The costmap cannot raytrace for it.
+[WARN] [1759504584.349533370] [nav2_costmap_2d]: Robot is out of bounds of the costmap!
+[WARN] [1759504584.349558639] [global_costmap.global_costmap]: Sensor origin at (-0.03, -0.00) is out of map bounds (0.00, 0.00) to (4.98, 4.98). The costmap cannot raytrace for it.
+[WARN] [1759504585.350127380] [nav2_costmap_2d]: Robot is out of bounds of the costmap!
+[WARN] [1759504585.350217387] [global_costmap.global_costmap]: Sensor origin at (-0.03, 0.00) is out of map bounds (0.00, 0.00) to (4.98, 4.98). The costmap cannot raytrace for it.
+[WARN] [1759504586.349508871] [nav2_costmap_2d]: Robot is out of bounds of the costmap!
+[WARN] [1759504586.349671174] [global_costmap.global_costmap]: Sensor origin at (-0.03, 0.00) is out of map bounds (0.00, 0.00) to (4.98, 4.98). The costmap cannot raytrace for it.
+[WARN] [1759504587.349491433] [nav2_costmap_2d]: Robot is out of bounds of the costmap!
+[WARN] [1759504587.349525025] [global_costmap.global_costmap]: Sensor origin at (-0.03, -0.00) is out of map bounds (0.00, 0.00) to (4.98, 4.98). The costmap cannot raytrace for it.
+[WARN] [1759504588.349491353] [nav2_costmap_2d]: Robot is out of bounds of the costmap!
+[WARN] [1759504588.349526290] [global_costmap.global_costmap]: Sensor origin at (-0.03, -0.00) is out of map bounds (0.00, 0.00) to (4.98, 4.98). The costmap cannot raytrace for it.
+[WARN] [1759504589.349509851] [nav2_costmap_2d]: Robot is out of bounds of the costmap!
+[WARN] [1759504589.349546631] [global_costmap.global_costmap]: Sensor origin at (-0.03, -0.00) is out of map bounds (0.00, 0.00) to (4.98, 4.98). The costmap cannot raytrace for it.
+[WARN] [1759504590.350052963] [nav2_costmap_2d]: Robot is out of bounds of the costmap!
+[WARN] [1759504590.350663340] [global_costmap.global_costmap]: Sensor origin at (-0.03, -0.00) is out of map bounds (0.00, 0.00) to (4.98, 4.98). The costmap cannot raytrace for it.
+[WARN] [1759504591.349492133] [nav2_costmap_2d]: Robot is out of bounds of the costmap!
+[WARN] [1759504591.349583487] [global_costmap.global_costmap]: Sensor origin at (-0.03, 0.00) is out of map bounds (0.00, 0.00) to (4.98, 4.98). The costmap cannot raytrace for it.
+[WARN] [1759504592.349490815] [nav2_costmap_2d]: Robot is out of bounds of the costmap!
+[WARN] [1759504592.349526693] [global_costmap.global_costmap]: Sensor origin at (-0.04, 0.01) is out of map bounds (0.00, 0.00) to (4.98, 4.98). The costmap cannot raytrace for it.
+[WARN] [1759504592.349569596] [global_costmap.global_costmap]: Can't update static costmap layer, no map received
+[WARN] [1759504593.349488160] [nav2_costmap_2d]: Robot is out of bounds of the costmap!
+[WARN] [1759504593.349656901] [global_costmap.global_costmap]: Sensor origin at (-0.03, 0.01) is out of map bounds (0.00, 0.00) to (4.98, 4.98). The costmap cannot raytrace for it.
+[WARN] [1759504594.349490011] [nav2_costmap_2d]: Robot is out of bounds of the costmap!
+[WARN] [1759504594.349524636] [global_costmap.global_costmap]: Sensor origin at (-0.03, -0.00) is out of map bounds (0.00, 0.00) to (4.98, 4.98). The costmap cannot raytrace for it.
+[WARN] [1759504595.349520974] [nav2_costmap_2d]: Robot is out of bounds of the costmap!
+[WARN] [1759504595.349558310] [global_costmap.global_costmap]: Sensor origin at (-0.03, 0.00) is out of map bounds (0.00, 0.00) to (4.98, 4.98). The costmap cannot raytrace for it.
+[WARN] [1759504596.349494824] [nav2_costmap_2d]: Robot is out of bounds of the costmap!
+[WARN] [1759504596.349676949] [global_costmap.global_costmap]: Sensor origin at (-0.03, -0.00) is out of map bounds (0.00, 0.00) to (4.98, 4.98). The costmap cannot raytrace for it.
+[WARN] [1759504597.349629760] [nav2_costmap_2d]: Robot is out of bounds of the costmap!
+[WARN] [1759504597.349692519] [global_costmap.global_costmap]: Sensor origin at (-0.03, 0.00) is out of map bounds (0.00, 0.00) to (4.98, 4.98). The costmap cannot raytrace for it.
+[WARN] [1759504598.349490649] [nav2_costmap_2d]: Robot is out of bounds of the costmap!
+[WARN] [1759504598.349529183] [global_costmap.global_costmap]: Sensor origin at (-0.03, -0.00) is out of map bounds (0.00, 0.00) to (4.98, 4.98). The costmap cannot raytrace for it.
+[WARN] [1759504599.349491520] [nav2_costmap_2d]: Robot is out of bounds of the costmap!
+[WARN] [1759504599.349525346] [global_costmap.global_costmap]: Sensor origin at (-0.03, -0.00) is out of map bounds (0.00, 0.00) to (4.98, 4.98). The costmap cannot raytrace for it.
+[WARN] [1759504600.349503211] [nav2_costmap_2d]: Robot is out of bounds of the costmap!
+[WARN] [1759504600.349537348] [global_costmap.global_costmap]: Sensor origin at (-0.03, -0.00) is out of map bounds (0.00, 0.00) to (4.98, 4.98). The costmap cannot raytrace for it.
+[WARN] [1759504601.349486807] [nav2_costmap_2d]: Robot is out of bounds of the costmap!
+[WARN] [1759504601.349521103] [global_costmap.global_costmap]: Sensor origin at (-0.03, 0.00) is out of map bounds (0.00, 0.00) to (4.98, 4.98). The costmap cannot raytrace for it.
+[WARN] [1759504602.349484029] [nav2_costmap_2d]: Robot is out of bounds of the costmap!
+[WARN] [1759504602.349520891] [global_costmap.global_costmap]: Sensor origin at (-0.04, -0.00) is out of map bounds (0.00, 0.00) to (4.98, 4.98). The costmap cannot raytrace for it.
+[WARN] [1759504602.349565107] [global_costmap.global_costmap]: Can't update static costmap layer, no map received
+[WARN] [1759504603.349492815] [nav2_costmap_2d]: Robot is out of bounds of the costmap!
+[WARN] [1759504603.349607510] [global_costmap.global_costmap]: Sensor origin at (-0.03, -0.00) is out of map bounds (0.00, 0.00) to (4.98, 4.98). The costmap cannot raytrace for it.
+[WARN] [1759504604.350623037] [nav2_costmap_2d]: Robot is out of bounds of the costmap!
+[WARN] [1759504604.350692338] [global_costmap.global_costmap]: Sensor origin at (-0.04, 0.00) is out of map bounds (0.00, 0.00) to (4.98, 4.98). The costmap cannot raytrace for it.
+[WARN] [1759504605.349883513] [nav2_costmap_2d]: Robot is out of bounds of the costmap!
+[WARN] [1759504605.349991735] [global_costmap.global_costmap]: Sensor origin at (-0.04, -0.00) is out of map bounds (0.00, 0.00) to (4.98, 4.98). The costmap cannot raytrace for it.
+[WARN] [1759504606.349498153] [nav2_costmap_2d]: Robot is out of bounds of the costmap!
+[WARN] [1759504606.349533769] [global_costmap.global_costmap]: Sensor origin at (-0.03, -0.00) is out of map bounds (0.00, 0.00) to (4.98, 4.98). The costmap cannot raytrace for it.
+[WARN] [1759504607.349493520] [nav2_costmap_2d]: Robot is out of bounds of the costmap!
+[WARN] [1759504607.349528850] [global_costmap.global_costmap]: Sensor origin at (-0.03, 0.00) is out of map bounds (0.00, 0.00) to (4.98, 4.98). The costmap cannot raytrace for it.
+[WARN] [1759504608.349510999] [nav2_costmap_2d]: Robot is out of bounds of the costmap!
+[WARN] [1759504608.349738557] [global_costmap.global_costmap]: Sensor origin at (-0.03, -0.01) is out of map bounds (0.00, 0.00) to (4.98, 4.98). The costmap cannot raytrace for it.
+[WARN] [1759504609.349658182] [nav2_costmap_2d]: Robot is out of bounds of the costmap!
+[WARN] [1759504609.349714312] [global_costmap.global_costmap]: Sensor origin at (-0.03, -0.00) is out of map bounds (0.00, 0.00) to (4.98, 4.98). The costmap cannot raytrace for it.
+[WARN] [1759504610.349494109] [nav2_costmap_2d]: Robot is out of bounds of the costmap!
+[WARN] [1759504610.349522094] [global_costmap.global_costmap]: Sensor origin at (-0.04, 0.00) is out of map bounds (0.00, 0.00) to (4.98, 4.98). The costmap cannot raytrace for it.
+[WARN] [1759504611.349528837] [nav2_costmap_2d]: Robot is out of bounds of the costmap!
+[WARN] [1759504611.349561229] [global_costmap.global_costmap]: Sensor origin at (-0.04, 0.01) is out of map bounds (0.00, 0.00) to (4.98, 4.98). The costmap cannot raytrace for it.
+[WARN] [1759504612.349997295] [nav2_costmap_2d]: Robot is out of bounds of the costmap!
+[WARN] [1759504612.350086044] [global_costmap.global_costmap]: Sensor origin at (-0.03, 0.00) is out of map bounds (0.00, 0.00) to (4.98, 4.98). The costmap cannot raytrace for it.
+[WARN] [1759504612.351303330] [global_costmap.global_costmap]: Can't update static costmap layer, no map received
+[WARN] [1759504613.349478520] [nav2_costmap_2d]: Robot is out of bounds of the costmap!
+[WARN] [1759504613.349503251] [global_costmap.global_costmap]: Sensor origin at (-0.03, -0.00) is out of map bounds (0.00, 0.00) to (4.98, 4.98). The costmap cannot raytrace for it.
+[WARN] [1759504614.349489352] [nav2_costmap_2d]: Robot is out of bounds of the costmap!
+[WARN] [1759504614.349526143] [global_costmap.global_costmap]: Sensor origin at (-0.03, -0.00) is out of map bounds (0.00, 0.00) to (4.98, 4.98). The costmap cannot raytrace for it.
+[INFO] [1759504615.147845908] [global_costmap.global_costmap]: Message Filter dropping message: frame 'base_scan' at time 82.200 for reason 'the timestamp on the message is earlier than all the data in the transform cache'
+[WARN] [1759504615.349477602] [nav2_costmap_2d]: Robot is out of bounds of the costmap!
+[WARN] [1759504615.349504881] [global_costmap.global_costmap]: Sensor origin at (-0.03, 0.00) is out of map bounds (0.00, 0.00) to (4.98, 4.98). The costmap cannot raytrace for it.
+[WARN] [1759504616.350448709] [global_costmap.global_costmap]: Sensor origin at (-0.03, -0.00) is out of map bounds (0.00, 0.00) to (4.98, 4.98). The costmap cannot raytrace for it.
+[WARN] [1759504617.349499897] [global_costmap.global_costmap]: Sensor origin at (-0.03, -0.00) is out of map bounds (0.00, 0.00) to (4.98, 4.98). The costmap cannot raytrace for it.
+[WARN] [1759504618.349486760] [nav2_costmap_2d]: Robot is out of bounds of the costmap!
+[WARN] [1759504618.349521224] [global_costmap.global_costmap]: Sensor origin at (0.03, -0.00) is out of map bounds (0.00, 0.00) to (4.98, 4.98). The costmap cannot raytrace for it.
+[WARN] [1759504619.349487033] [nav2_costmap_2d]: Robot is out of bounds of the costmap!
+[WARN] [1759504619.349519914] [global_costmap.global_costmap]: Sensor origin at (0.12, -0.00) is out of map bounds (0.00, 0.00) to (4.98, 4.98). The costmap cannot raytrace for it.
+[WARN] [1759504620.349489310] [nav2_costmap_2d]: Robot is out of bounds of the costmap!
+[WARN] [1759504620.349522856] [global_costmap.global_costmap]: Sensor origin at (0.28, -0.00) is out of map bounds (0.00, 0.00) to (4.98, 4.98). The costmap cannot raytrace for it.
+[WARN] [1759504621.349489951] [nav2_costmap_2d]: Robot is out of bounds of the costmap!
+[WARN] [1759504621.349524300] [global_costmap.global_costmap]: Sensor origin at (0.48, -0.00) is out of map bounds (0.00, 0.00) to (4.98, 4.98). The costmap cannot raytrace for it.
+[WARN] [1759504622.349486804] [nav2_costmap_2d]: Robot is out of bounds of the costmap!
+[WARN] [1759504622.349519493] [global_costmap.global_costmap]: Sensor origin at (0.69, -0.00) is out of map bounds (0.00, 0.00) to (4.98, 4.98). The costmap cannot raytrace for it.
+[WARN] [1759504622.349567764] [global_costmap.global_costmap]: Can't update static costmap layer, no map received
+[WARN] [1759504623.349493054] [nav2_costmap_2d]: Robot is out of bounds of the costmap!
+[WARN] [1759504623.349529851] [global_costmap.global_costmap]: Sensor origin at (0.86, -0.01) is out of map bounds (0.00, 0.00) to (4.98, 4.98). The costmap cannot raytrace for it.
+[WARN] [1759504624.349493157] [nav2_costmap_2d]: Robot is out of bounds of the costmap!
+[WARN] [1759504624.349529788] [global_costmap.global_costmap]: Sensor origin at (1.07, -0.01) is out of map bounds (0.00, 0.00) to (4.98, 4.98). The costmap cannot raytrace for it.
+[WARN] [1759504625.349514850] [nav2_costmap_2d]: Robot is out of bounds of the costmap!
+[WARN] [1759504625.349699006] [global_costmap.global_costmap]: Sensor origin at (1.28, -0.00) is out of map bounds (0.00, 0.00) to (4.98, 4.98). The costmap cannot raytrace for it.
+[WARN] [1759504626.349494989] [nav2_costmap_2d]: Robot is out of bounds of the costmap!
+[WARN] [1759504626.349531734] [global_costmap.global_costmap]: Sensor origin at (1.49, -0.01) is out of map bounds (0.00, 0.00) to (4.98, 4.98). The costmap cannot raytrace for it.
+[WARN] [1759504627.349480525] [nav2_costmap_2d]: Robot is out of bounds of the costmap!
+[WARN] [1759504627.349508276] [global_costmap.global_costmap]: Sensor origin at (1.65, -0.01) is out of map bounds (0.00, 0.00) to (4.98, 4.98). The costmap cannot raytrace for it.
+[WARN] [1759504628.349485590] [nav2_costmap_2d]: Robot is out of bounds of the costmap!
+[WARN] [1759504628.349514339] [global_costmap.global_costmap]: Sensor origin at (1.86, -0.01) is out of map bounds (0.00, 0.00) to (4.98, 4.98). The costmap cannot raytrace for it.
+[WARN] [1759504629.349500722] [nav2_costmap_2d]: Robot is out of bounds of the costmap!
+[WARN] [1759504629.349690511] [global_costmap.global_costmap]: Sensor origin at (2.03, -0.01) is out of map bounds (0.00, 0.00) to (4.98, 4.98). The costmap cannot raytrace for it.
+[WARN] [1759504630.349485425] [nav2_costmap_2d]: Robot is out of bounds of the costmap!
+[WARN] [1759504630.349518485] [global_costmap.global_costmap]: Sensor origin at (2.24, -0.01) is out of map bounds (0.00, 0.00) to (4.98, 4.98). The costmap cannot raytrace for it.
+[WARN] [1759504631.349499488] [nav2_costmap_2d]: Robot is out of bounds of the costmap!
+[WARN] [1759504631.349780856] [global_costmap.global_costmap]: Sensor origin at (2.41, -0.00) is out of map bounds (0.00, 0.00) to (4.98, 4.98). The costmap cannot raytrace for it.
+[WARN] [1759504632.349486871] [nav2_costmap_2d]: Robot is out of bounds of the costmap!
+[WARN] [1759504632.349521204] [global_costmap.global_costmap]: Sensor origin at (2.47, -0.01) is out of map bounds (0.00, 0.00) to (4.98, 4.98). The costmap cannot raytrace for it.
+[WARN] [1759504632.349565893] [global_costmap.global_costmap]: Can't update static costmap layer, no map received
+[WARN] [1759504633.349474602] [nav2_costmap_2d]: Robot is out of bounds of the costmap!
+[WARN] [1759504633.349509810] [global_costmap.global_costmap]: Sensor origin at (2.47, -0.03) is out of map bounds (0.00, 0.00) to (4.98, 4.98). The costmap cannot raytrace for it.
+[WARN] [1759504634.349550971] [nav2_costmap_2d]: Robot is out of bounds of the costmap!
+[WARN] [1759504634.349580508] [global_costmap.global_costmap]: Sensor origin at (2.13, -0.25) is out of map bounds (0.00, 0.00) to (4.98, 4.98). The costmap cannot raytrace for it.
+[WARN] [1759504635.349483259] [nav2_costmap_2d]: Robot is out of bounds of the costmap!
+[WARN] [1759504635.349517775] [global_costmap.global_costmap]: Sensor origin at (2.11, -0.26) is out of map bounds (0.00, 0.00) to (4.98, 4.98). The costmap cannot raytrace for it.
+[WARN] [1759504636.349478667] [nav2_costmap_2d]: Robot is out of bounds of the costmap!
+[WARN] [1759504636.349511216] [global_costmap.global_costmap]: Sensor origin at (2.11, -0.24) is out of map bounds (0.00, 0.00) to (4.98, 4.98). The costmap cannot raytrace for it.
+[WARN] [1759504637.349483542] [nav2_costmap_2d]: Robot is out of bounds of the costmap!
+[WARN] [1759504637.349515831] [global_costmap.global_costmap]: Sensor origin at (2.13, -0.18) is out of map bounds (0.00, 0.00) to (4.98, 4.98). The costmap cannot raytrace for it.
+[WARN] [1759504638.349624583] [nav2_costmap_2d]: Robot is out of bounds of the costmap!
+[WARN] [1759504638.349666908] [global_costmap.global_costmap]: Sensor origin at (2.22, -0.09) is out of map bounds (0.00, 0.00) to (4.98, 4.98). The costmap cannot raytrace for it.
+[WARN] [1759504642.349567917] [global_costmap.global_costmap]: Can't update static costmap layer, no map received
+[WARN] [1759504652.349559925] [global_costmap.global_costmap]: Can't update static costmap layer, no map received
+[INFO] [1759504655.440903385] [bt_navigator]: Begin navigating from current location (3.02, 0.74) to (1.82, 1.14)
+[WARN] [1759504656.472761891] [planner_server]: GridBased plugin failed to plan from (0.00, 0.00) to (1.82, 1.14): "Costmap timed out waiting for update"
+[WARN] [1759504656.472824465] [planner_server]: [compute_path_to_pose] [ActionServer] Aborting handle.
+[INFO] [1759504656.491590483] [global_costmap.global_costmap]: Received request to clear entirely the global_costmap
+[WARN] [1759504657.522351835] [planner_server]: GridBased plugin failed to plan from (0.00, 0.00) to (1.82, 1.14): "Costmap timed out waiting for update"
+[WARN] [1759504657.522408611] [planner_server]: [compute_path_to_pose] [ActionServer] Aborting handle.
+[INFO] [1759504657.541847479] [local_costmap.local_costmap]: Received request to clear entirely the local_costmap
+[INFO] [1759504657.542566228] [global_costmap.global_costmap]: Received request to clear entirely the global_costmap
+[WARN] [1759504658.573310435] [planner_server]: GridBased plugin failed to plan from (0.00, 0.00) to (1.82, 1.14): "Costmap timed out waiting for update"
+[WARN] [1759504658.573367504] [planner_server]: [compute_path_to_pose] [ActionServer] Aborting handle.
+[INFO] [1759504658.591650257] [global_costmap.global_costmap]: Received request to clear entirely the global_costmap
+[WARN] [1759504659.622211673] [planner_server]: GridBased plugin failed to plan from (0.00, 0.00) to (1.82, 1.14): "Costmap timed out waiting for update"
+[WARN] [1759504659.622477931] [planner_server]: [compute_path_to_pose] [ActionServer] Aborting handle.
+[INFO] [1759504659.642229993] [behavior_server]: Running spin
+[INFO] [1759504659.642385415] [behavior_server]: Turning 1.57 for spin behavior.
+[WARN] [1759504662.349606220] [global_costmap.global_costmap]: Can't update static costmap layer, no map received
+[WARN] [1759504670.242608911] [behavior_server]: Exceeded time allowance before reaching the Spin goal - Exiting Spin
+[WARN] [1759504670.242653735] [behavior_server]: spin failed
+[WARN] [1759504670.242668554] [behavior_server]: [spin] [ActionServer] Aborting handle.
+[INFO] [1759504670.261986573] [behavior_server]: Running wait
+[INFO] [1759504670.751411066] [bt_navigator]: Received goal preemption request
+[INFO] [1759504670.751612049] [bt_navigator]: Begin navigating from current location (3.02, 0.74) to (1.05, 0.28)
+[WARN] [1759504672.349684421] [global_costmap.global_costmap]: Can't update static costmap layer, no map received
+[INFO] [1759504674.661345610] [bt_navigator]: Received goal preemption request
+[INFO] [1759504674.661487828] [bt_navigator]: Begin navigating from current location (3.02, 0.74) to (2.36, 2.23)
+[INFO] [1759504675.662221305] [behavior_server]: wait completed successfully
+[WARN] [1759504676.804334705] [planner_server]: GridBased plugin failed to plan from (0.00, 0.00) to (2.36, 2.23): "Costmap timed out waiting for update"
+[WARN] [1759504676.804397434] [planner_server]: [compute_path_to_pose] [ActionServer] Aborting handle.
+[INFO] [1759504676.821857738] [global_costmap.global_costmap]: Received request to clear entirely the global_costmap
+[WARN] [1759504677.852676455] [planner_server]: GridBased plugin failed to plan from (0.00, 0.00) to (2.36, 2.23): "Costmap timed out waiting for update"
+[WARN] [1759504677.852736003] [planner_server]: [compute_path_to_pose] [ActionServer] Aborting handle.
+[INFO] [1759504677.872008510] [behavior_server]: Running backup
+[WARN] [1759504682.349548952] [global_costmap.global_costmap]: Can't update static costmap layer, no map received
+[WARN] [1759504688.272187371] [behavior_server]: Exceeded time allowance before reaching the DriveOnHeading goal - Exiting DriveOnHeading
+[WARN] [1759504688.272252589] [behavior_server]: backup failed
+[WARN] [1759504688.272271203] [behavior_server]: [backup] [ActionServer] Aborting handle.
+[INFO] [1759504688.291729142] [local_costmap.local_costmap]: Received request to clear entirely the local_costmap
+[INFO] [1759504688.292245133] [global_costmap.global_costmap]: Received request to clear entirely the global_costmap
+[WARN] [1759504689.373715009] [planner_server]: GridBased plugin failed to plan from (0.00, 0.00) to (2.36, 2.23): "Costmap timed out waiting for update"
+[WARN] [1759504689.373770434] [planner_server]: [compute_path_to_pose] [ActionServer] Aborting handle.
+[INFO] [1759504689.391640959] [global_costmap.global_costmap]: Received request to clear entirely the global_costmap
+[WARN] [1759504690.422407253] [planner_server]: GridBased plugin failed to plan from (0.00, 0.00) to (2.36, 2.23): "Costmap timed out waiting for update"
+[WARN] [1759504690.422754672] [planner_server]: [compute_path_to_pose] [ActionServer] Aborting handle.
+[INFO] [1759504690.442054653] [behavior_server]: Running spin
+[INFO] [1759504690.442119330] [behavior_server]: Turning 1.57 for spin behavior.
+[WARN] [1759504692.349559582] [global_costmap.global_costmap]: Can't update static costmap layer, no map received
+[WARN] [1759504701.042277305] [behavior_server]: Exceeded time allowance before reaching the Spin goal - Exiting Spin
+[WARN] [1759504701.042310019] [behavior_server]: spin failed
+[WARN] [1759504701.042320626] [behavior_server]: [spin] [ActionServer] Aborting handle.
+[INFO] [1759504701.061425582] [behavior_server]: Running wait
+[WARN] [1759504702.349570555] [global_costmap.global_costmap]: Can't update static costmap layer, no map received
+[INFO] [1759504706.261985020] [behavior_server]: wait completed successfully
+[WARN] [1759504707.361708937] [planner_server]: GridBased plugin failed to plan from (0.00, 0.00) to (2.36, 2.23): "Costmap timed out waiting for update"
+[WARN] [1759504707.362104078] [planner_server]: [compute_path_to_pose] [ActionServer] Aborting handle.
+[INFO] [1759504707.381663172] [global_costmap.global_costmap]: Received request to clear entirely the global_costmap
+[WARN] [1759504708.422612634] [planner_server]: GridBased plugin failed to plan from (0.00, 0.00) to (2.36, 2.23): "Costmap timed out waiting for update"
+[WARN] [1759504708.422714803] [planner_server]: [compute_path_to_pose] [ActionServer] Aborting handle.
+[INFO] [1759504708.441771703] [behavior_server]: Running backup
+[WARN] [1759504712.349556209] [global_costmap.global_costmap]: Can't update static costmap layer, no map received
+^C[INFO] [1759504718.102281979] [rclcpp]: signal_handler(signum=2)
+[INFO] [1759504718.102247266] [rclcpp]: signal_handler(signum=2)
+[INFO] [1759504718.102244544] [rclcpp]: signal_handler(signum=2)
+[INFO] [1759504718.102247511] [rclcpp]: signal_handler(signum=2)
+[INFO] [1759504718.102498113] [planner_server]: Running Nav2 LifecycleNode rcl preshutdown (planner_server)
+[INFO] [1759504718.102583114] [bt_navigator]: Running Nav2 LifecycleNode rcl preshutdown (bt_navigator)
+[INFO] [1759504718.102631128] [smoother_server]: Running Nav2 LifecycleNode rcl preshutdown (smoother_server)
+[INFO] [1759504718.102253944] [rclcpp]: signal_handler(signum=2)
+[INFO] [1759504718.102688575] [planner_server]: Deactivating
+[INFO] [1759504718.102756511] [bt_navigator]: Deactivating
+[INFO] [1759504718.102336080] [rclcpp]: signal_handler(signum=2)
+[INFO] [1759504718.102337436] [rclcpp]: signal_handler(signum=2)
+[INFO] [1759504718.102944228] [velocity_smoother]: Running Nav2 LifecycleNode rcl preshutdown (velocity_smoother)
+[INFO] [1759504718.102993853] [global_costmap.global_costmap]: Deactivating
+[INFO] [1759504718.103090560] [waypoint_follower]: Running Nav2 LifecycleNode rcl preshutdown (waypoint_follower)
+[INFO] [1759504718.103106741] [velocity_smoother]: Deactivating
+[INFO] [1759504718.103115378] [controller_server]: Running Nav2 LifecycleNode rcl preshutdown (controller_server)
+[INFO] [1759504718.103188186] [velocity_smoother]: Destroying bond (velocity_smoother) to lifecycle manager.
+[INFO] [1759504718.103252127] [controller_server]: Deactivating
+[INFO] [1759504718.103253085] [waypoint_follower]: Deactivating
+[INFO] [1759504718.103264367] [behavior_server]: Running Nav2 LifecycleNode rcl preshutdown (behavior_server)
+[INFO] [1759504718.103322636] [MPPIController]: Deactivated MPPI Controller: FollowPath
+[INFO] [1759504718.103325450] [waypoint_follower]: Destroying bond (waypoint_follower) to lifecycle manager.
+[INFO] [1759504718.103361771] [local_costmap.local_costmap]: Deactivating
+[INFO] [1759504718.103396636] [behavior_server]: Deactivating
+[WARN] [1759504718.103459979] [behavior_server]: [backup] [ActionServer] Requested to deactivate server but goal is still executing. Should check if action server is running before deactivating.
+[WARN] [1759504718.102820401] [bt_navigator]: [navigate_to_pose] [ActionServer] Requested to deactivate server but goal is still executing. Should check if action server is running before deactivating.
+
+[INFO] [1759504718.102819354] [smoother_server]: Deactivating
+[INFO] [1759504718.102248391] [rclcpp]: signal_handler(signum=2)
+[INFO] [1759504718.103918445] [smoother_server]: Destroying bond (smoother_server) to lifecycle manager.
+[INFO] [1759504718.104085933] [lifecycle_manager]: Running Nav2 LifecycleManager rcl preshutdown (lifecycle_manager)
+[INFO] [1759504718.104517791] [lifecycle_manager]: Terminating bond timer...
+owner@owner-Z390-M-GAMING:~/hector_ws$ [INFO] [1759504718.113811987] [velocity_smoother]: Cleaning up
+[INFO] [1759504718.113908143] [velocity_smoother]: Destroying bond (velocity_smoother) to lifecycle manager.
+[INFO] [1759504718.114211338] [waypoint_follower]: Cleaning up
+[INFO] [1759504718.114989995] [smoother_server]: Cleaning up
+[INFO] [1759504718.125336088] [velocity_smoother]: Destroying
+[ERROR] [1759504718.132860783] [bt_navigator_navigate_to_pose_rclcpp_node]: Failed to get result for backup in node halt!
+[WARN] [1759504718.133126164] [bt_navigator]: [navigate_to_pose] [ActionServer] Aborting handle.
+[INFO] [1759504718.133260666] [bt_navigator]: Goal canceled
+[WARN] [1759504718.133308736] [bt_navigator]: [navigate_to_pose] [ActionServer] Stopping the thread per request.
+[INFO] [1759504718.133425293] [bt_navigator]: Destroying bond (bt_navigator) to lifecycle manager.
+[INFO] [1759504718.142190973] [behavior_server]: Canceling backup
+[WARN] [1759504718.142384763] [LifecyclePublisher]: Trying to publish message on the topic '/cmd_vel', but the publisher is not activated
+[INFO] [1759504718.142420751] [behavior_server]: [backup] [ActionServer] Client requested to cancel the goal. Cancelling.
+[INFO] [1759504718.142516814] [smoother_server]: Destroying bond (smoother_server) to lifecycle manager.
+[WARN] [1759504718.142908108] [behavior_server]: [backup] [ActionServer] Stopping the thread per request.
+[INFO] [1759504718.143339288] [behavior_server]: Destroying bond (behavior_server) to lifecycle manager.
+[INFO] [1759504718.144523293] [bt_navigator]: Cleaning up
+[INFO] [1759504718.144742131] [smoother_server]: Destroying
+[INFO] [1759504718.148863598] [waypoint_follower]: Destroying bond (waypoint_follower) to lifecycle manager.
+[INFO] [1759504718.150809048] [waypoint_follower]: Destroying
+[INFO] [1759504718.155871560] [behavior_server]: Cleaning up
+[INFO] [1759504718.158445321] [behavior_server]: Destroying bond (behavior_server) to lifecycle manager.
+[INFO] [1759504718.172545418] [behavior_server]: Destroying
+[INFO] [1759504718.174455358] [controller_server]: Destroying bond (controller_server) to lifecycle manager.
+[INFO] [1759504718.184769312] [controller_server]: Cleaning up
+[INFO] [1759504718.186806643] [MPPIController]: Cleaned up MPPI Controller: FollowPath
+[INFO] [1759504718.186973140] [local_costmap.local_costmap]: Cleaning up
+[INFO] [1759504718.193188711] [bt_navigator]: Completed Cleaning up
+[INFO] [1759504718.193223871] [bt_navigator]: Destroying bond (bt_navigator) to lifecycle manager.
+[INFO] [1759504718.196511260] [controller_server]: Destroying bond (controller_server) to lifecycle manager.
+[INFO] [1759504718.198149876] [bt_navigator]: Destroying
+[INFO] [1759504718.199598667] [local_costmap.local_costmap]: Destroying
+[INFO] [1759504718.203651159] [controller_server]: Destroying
+[INFO] [1759504718.213485504] [lifecycle_manager]: Destroying lifecycle_manager
+[INFO] [1759504718.349640041] [planner_server]: Deactivating plugin GridBased of type NavfnPlanner
+[INFO] [1759504718.349669591] [planner_server]: Destroying bond (planner_server) to lifecycle manager.
+[INFO] [1759504718.359856203] [planner_server]: Cleaning up
+[INFO] [1759504718.363054832] [global_costmap.global_costmap]: Cleaning up
+[INFO] [1759504718.364889552] [planner_server]: Cleaning up plugin GridBased of type NavfnPlanner
+[INFO] [1759504718.365057116] [planner_server]: Destroying plugin GridBased of type NavfnPlanner
+[INFO] [1759504718.369280082] [planner_server]: Destroying bond (planner_server) to lifecycle manager.
+[INFO] [1759504718.371027382] [global_costmap.global_costmap]: Destroying
+[INFO] [1759504718.374299913] [planner_server]: Destroying
+^C
+owner@owner-Z390-M-GAMING:~/hector_ws$
