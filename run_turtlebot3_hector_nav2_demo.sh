@@ -16,7 +16,8 @@ cleanup() {
     echo "Cleaning up all processes..."
 
     # Kill the tracked PIDs
-    kill $GAZEBO_PID $STATIC_TF_PID $HECTOR_PID $NAV2_PID $RVIZ_PID 2>/dev/null || true
+    kill $GAZEBO_PID $STATIC_TF_PID $HECTOR_PID $RVIZ_PID 2>/dev/null || true
+    kill $CONTROLLER_PID $PLANNER_PID $BEHAVIOR_PID $BT_NAV_PID $WAYPOINT_PID $SMOOTHER_PID $VELOCITY_PID $LIFECYCLE_PID 2>/dev/null || true
 
     # Also kill any remaining processes by name to catch child processes
     killall -9 gz gzserver gzclient 2>/dev/null || true
@@ -98,13 +99,65 @@ ros2 run hector_mapping hector_mapping_node --ros-args \
 HECTOR_PID=$!
 sleep 5
 
-# Start NAV2 stack (without AMCL since Hector provides localization)
+# Start NAV2 stack (without AMCL and docking since Hector provides localization)
 echo "4. Starting NAV2 navigation stack..."
-ros2 launch nav2_bringup navigation_launch.py \
-  use_sim_time:=true \
-  params_file:="$SCRIPT_DIR/config/nav2_params.yaml" &
-NAV2_PID=$!
-sleep 5
+
+PARAMS_FILE="$SCRIPT_DIR/config/nav2_params.yaml"
+
+# Controller server
+ros2 run nav2_controller controller_server --ros-args \
+  --params-file $PARAMS_FILE \
+  -p use_sim_time:=true &
+CONTROLLER_PID=$!
+
+# Planner server
+ros2 run nav2_planner planner_server --ros-args \
+  --params-file $PARAMS_FILE \
+  -p use_sim_time:=true &
+PLANNER_PID=$!
+
+# Behavior server
+ros2 run nav2_behaviors behavior_server --ros-args \
+  --params-file $PARAMS_FILE \
+  -p use_sim_time:=true &
+BEHAVIOR_PID=$!
+
+# BT Navigator
+ros2 run nav2_bt_navigator bt_navigator --ros-args \
+  --params-file $PARAMS_FILE \
+  -p use_sim_time:=true &
+BT_NAV_PID=$!
+
+# Waypoint follower
+ros2 run nav2_waypoint_follower waypoint_follower --ros-args \
+  --params-file $PARAMS_FILE \
+  -p use_sim_time:=true &
+WAYPOINT_PID=$!
+
+# Smoother server
+ros2 run nav2_smoother smoother_server --ros-args \
+  --params-file $PARAMS_FILE \
+  -p use_sim_time:=true &
+SMOOTHER_PID=$!
+
+# Velocity smoother
+ros2 run nav2_velocity_smoother velocity_smoother --ros-args \
+  --params-file $PARAMS_FILE \
+  -p use_sim_time:=true &
+VELOCITY_PID=$!
+
+# Lifecycle manager (to bring everything up)
+ros2 run nav2_lifecycle_manager lifecycle_manager --ros-args \
+  --params-file $PARAMS_FILE \
+  -p use_sim_time:=true \
+  -p node_names:="['controller_server','planner_server','behavior_server','bt_navigator','waypoint_follower','smoother_server','velocity_smoother']" \
+  -p autostart:=true &
+LIFECYCLE_PID=$!
+
+NAV2_PID=$CONTROLLER_PID
+
+echo "NAV2 nodes starting..."
+sleep 10
 
 # Start RViz with TurtleBot3 config
 echo "5. Starting RViz2..."
@@ -116,7 +169,10 @@ echo "=== TurtleBot3 + Hector SLAM + NAV2 Demo Started Successfully ==="
 echo "Gazebo PID: $GAZEBO_PID"
 echo "Static TF PID: $STATIC_TF_PID"
 echo "Hector PID: $HECTOR_PID"
-echo "NAV2 PID: $NAV2_PID"
+echo "NAV2 Controller PID: $CONTROLLER_PID"
+echo "NAV2 Planner PID: $PLANNER_PID"
+echo "NAV2 BT Navigator PID: $BT_NAV_PID"
+echo "NAV2 Lifecycle Manager PID: $LIFECYCLE_PID"
 echo "RViz PID: $RVIZ_PID"
 echo ""
 echo "To control the TurtleBot3, use:"
@@ -125,8 +181,8 @@ echo ""
 echo "To send a navigation goal, use RViz '2D Goal Pose' tool or:"
 echo "ros2 topic pub /goal_pose geometry_msgs/msg/PoseStamped '{header: {frame_id: \"map\"}, pose: {position: {x: 1.0, y: 0.0, z: 0.0}, orientation: {w: 1.0}}}' --once"
 echo ""
-echo "To stop all processes, run:"
-echo "kill $GAZEBO_PID $STATIC_TF_PID $HECTOR_PID $NAV2_PID $RVIZ_PID"
+echo "To stop all processes, use Ctrl+C in this terminal or run:"
+echo "pkill -f run_turtlebot3_hector_nav2_demo.sh"
 echo ""
 echo "Press Ctrl+C to stop this script and all processes..."
 
