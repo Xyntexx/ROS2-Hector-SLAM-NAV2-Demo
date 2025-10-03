@@ -61,6 +61,25 @@ bt_navigator:
       plugin: "nav2_bt_navigator::NavigateThroughPosesNavigator"
     use_sim_time: true
 
+# Docking server configuration (minimal to prevent errors)
+docking_server:
+  ros__parameters:
+    controller_frequency: 50.0
+    initial_perception_timeout: 5.0
+    wait_charge_timeout: 5.0
+    dock_approach_timeout: 30.0
+    undock_linear_tolerance: 0.05
+    undock_angular_tolerance: 0.1
+    max_retries: 3
+    base_frame: "base_link"
+    fixed_frame: "odom"
+    dock_backwards: false
+    dock_prestaging_tolerance: 0.5
+    use_sim_time: true
+    # Dock plugins - using a simple type to avoid errors
+    dock_plugins: []
+    docks: []
+
 controller_server:
   ros__parameters:
     controller_frequency: 20.0
