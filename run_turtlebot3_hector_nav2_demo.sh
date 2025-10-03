@@ -82,7 +82,7 @@ GAZEBO_PID=$!
 
 # Start static transform publisher (Required for TF tree)
 echo "2. Starting static transform publisher..."
-ros2 run tf2_ros static_transform_publisher --x 0 --y 0 --z 0.08 --qx 0 --qy 0 --qz 0 --qw 1 --frame-id base_footprint --child-frame-id base_scan &
+ros2 run tf2_ros static_transform_publisher 0 0 0.08 0 0 0 base_footprint base_scan &
 STATIC_TF_PID=$!
 
 # Start Hector mapping with TurtleBot3 frame
