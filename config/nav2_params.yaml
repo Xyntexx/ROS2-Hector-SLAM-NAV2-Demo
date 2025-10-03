@@ -93,7 +93,6 @@ controller_server:
     controller_plugins: ["FollowPath"]
     use_realtime_priority: false
     use_sim_time: true
-    cmd_vel_topic: "cmd_vel_nav"
 
     progress_checker:
       plugin: "nav2_controller::SimpleProgressChecker"
