@@ -31,7 +31,16 @@ sudo apt install -y \
   ros-jazzy-turtlebot3-teleop
 ```
 
-### 2. Clone and Build Hector SLAM for ROS2
+### 2. Install NAV2 and twist_mux (for autonomous navigation)
+
+```bash
+sudo apt install -y \
+  ros-jazzy-navigation2 \
+  ros-jazzy-nav2-bringup \
+  ros-jazzy-twist-mux
+```
+
+### 3. Clone and Build Hector SLAM for ROS2
 
 ```bash
 # Create workspace
