@@ -7,22 +7,6 @@ echo "=== TurtleBot3 + Hector SLAM Demo Setup ==="
 SCRIPT_DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" &> /dev/null && pwd )"
 cd "$SCRIPT_DIR"
 
-# Source ROS2 and workspace
-echo "Sourcing ROS2 and workspace..."
-source /opt/ros/jazzy/setup.bash
-source install/setup.bash
-
-# Set TurtleBot3 model
-export TURTLEBOT3_MODEL=burger
-
-# Kill any existing processes (before starting new ones)
-echo "Cleaning up any existing processes..."
-pkill -f gazebo 2>/dev/null || true
-pkill -f "gz sim" 2>/dev/null || true
-pkill -f rviz2 2>/dev/null || true
-pkill -f hector_mapping 2>/dev/null || true
-sleep 3
-
 # Function to cleanup on exit
 cleanup() {
     echo ""
@@ -39,7 +23,25 @@ cleanup() {
     echo "TurtleBot3 + Hector SLAM demo stopped."
 }
 
-# Set trap to cleanup on script exit (AFTER initial cleanup)
+# Source ROS2 and workspace
+echo "Sourcing ROS2 and workspace..."
+source /opt/ros/jazzy/setup.bash
+source install/setup.bash
+
+# Set TurtleBot3 model
+export TURTLEBOT3_MODEL=burger
+
+# Kill any existing processes (before starting new ones)
+# Disable job control messages
+set +m
+echo "Cleaning up any existing processes..."
+pkill -f gazebo 2>/dev/null || true
+pkill -f "gz sim" 2>/dev/null || true
+pkill -f rviz2 2>/dev/null || true
+pkill -f hector_mapping 2>/dev/null || true
+sleep 3
+
+# Set trap to cleanup on script exit AFTER initial cleanup
 trap cleanup EXIT INT TERM
 
 echo "Starting TurtleBot3 + Hector SLAM Demo..."
