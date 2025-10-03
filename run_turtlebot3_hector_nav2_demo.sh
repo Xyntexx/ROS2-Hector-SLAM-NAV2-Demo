@@ -19,7 +19,6 @@ cleanup() {
     pkill -f "hector_mapping" 2>/dev/null || true
     pkill -f "static_transform_publisher.*base_footprint.*base_scan" 2>/dev/null || true
     pkill -f "rviz2.*turtlebot3_hector" 2>/dev/null || true
-    pkill -f "nav2" 2>/dev/null || true
     pkill -f "bt_navigator" 2>/dev/null || true
     pkill -f "controller_server" 2>/dev/null || true
     pkill -f "planner_server" 2>/dev/null || true
@@ -28,6 +27,8 @@ cleanup() {
     pkill -f "waypoint_follower" 2>/dev/null || true
     pkill -f "velocity_smoother" 2>/dev/null || true
     pkill -f "lifecycle_manager" 2>/dev/null || true
+    pkill -f "docking_server" 2>/dev/null || true
+    pkill -f "collision_monitor" 2>/dev/null || true
     wait 2>/dev/null
     echo "TurtleBot3 + Hector SLAM + NAV2 demo stopped."
 }
@@ -50,7 +51,6 @@ killall -q gzserver 2>/dev/null || true
 killall -q gzclient 2>/dev/null || true
 killall -q rviz2 2>/dev/null || true
 pkill -f hector_mapping 2>/dev/null || true
-pkill -f "nav2_" 2>/dev/null || true
 pkill -f bt_navigator 2>/dev/null || true
 pkill -f controller_server 2>/dev/null || true
 pkill -f planner_server 2>/dev/null || true
@@ -59,6 +59,8 @@ pkill -f behavior_server 2>/dev/null || true
 pkill -f waypoint_follower 2>/dev/null || true
 pkill -f velocity_smoother 2>/dev/null || true
 pkill -f lifecycle_manager 2>/dev/null || true
+pkill -f docking_server 2>/dev/null || true
+pkill -f collision_monitor 2>/dev/null || true
 sleep 3
 echo "Cleanup complete."
 
