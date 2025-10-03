@@ -68,7 +68,6 @@ pkill -f velocity_smoother 2>/dev/null || true
 pkill -f lifecycle_manager 2>/dev/null || true
 pkill -f docking_server 2>/dev/null || true
 pkill -f collision_monitor 2>/dev/null || true
-sleep 3
 echo "Cleanup complete."
 
 # Set trap to cleanup on script exit AFTER initial cleanup
@@ -80,13 +79,11 @@ echo "Starting TurtleBot3 + Hector SLAM + NAV2 Demo..."
 echo "1. Starting TurtleBot3 Gazebo world..."
 ros2 launch turtlebot3_gazebo turtlebot3_world.launch.py &
 GAZEBO_PID=$!
-sleep 10
 
 # Start static transform publisher (Required for TF tree)
 echo "2. Starting static transform publisher..."
 ros2 run tf2_ros static_transform_publisher --x 0 --y 0 --z 0.08 --qx 0 --qy 0 --qz 0 --qw 1 --frame-id base_footprint --child-frame-id base_scan &
 STATIC_TF_PID=$!
-sleep 2
 
 # Start Hector mapping with TurtleBot3 frame
 echo "3. Starting Hector SLAM mapping..."
@@ -98,7 +95,6 @@ ros2 run hector_mapping hector_mapping_node --ros-args \
   -p scan_topic:=/scan \
   -p pub_map_odom_transform:=true &
 HECTOR_PID=$!
-sleep 5
 
 # Start twist_mux for cmd_vel multiplexing
 echo "4. Starting twist_mux..."
@@ -106,7 +102,6 @@ ros2 run twist_mux twist_mux --ros-args \
   --params-file "$SCRIPT_DIR/config/twist_mux.yaml" \
   -r cmd_vel_out:=cmd_vel &
 TWIST_MUX_PID=$!
-sleep 2
 
 # Start NAV2 stack (without AMCL and docking since Hector provides localization)
 echo "5. Starting NAV2 navigation stack..."
@@ -160,9 +155,6 @@ ros2 run nav2_lifecycle_manager lifecycle_manager --ros-args \
 LIFECYCLE_PID=$!
 
 NAV2_PID=$CONTROLLER_PID
-
-echo "NAV2 nodes starting..."
-sleep 10
 
 # Start RViz with TurtleBot3 config
 echo "6. Starting RViz2..."
