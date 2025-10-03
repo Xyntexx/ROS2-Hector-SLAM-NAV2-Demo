@@ -114,45 +114,19 @@ ros2 run hector_mapping hector_mapping_node --ros-args \
 If you want autonomous navigation capabilities, launch the NAV2 components:
 
 ```bash
-source /opt/ros/jazzy/setup.bash
 cd ~/hector_ws
-
-PARAMS_FILE="$PWD/config/nav2_params.yaml"
-
-# Controller server
-ros2 run nav2_controller controller_server --ros-args \
-  --params-file $PARAMS_FILE -p use_sim_time:=true &
-
-# Planner server
-ros2 run nav2_planner planner_server --ros-args \
-  --params-file $PARAMS_FILE -p use_sim_time:=true &
-
-# Behavior server
-ros2 run nav2_behaviors behavior_server --ros-args \
-  --params-file $PARAMS_FILE -p use_sim_time:=true &
-
-# BT Navigator
-ros2 run nav2_bt_navigator bt_navigator --ros-args \
-  --params-file $PARAMS_FILE -p use_sim_time:=true &
-
-# Waypoint follower
-ros2 run nav2_waypoint_follower waypoint_follower --ros-args \
-  --params-file $PARAMS_FILE -p use_sim_time:=true &
-
-# Smoother server
-ros2 run nav2_smoother smoother_server --ros-args \
-  --params-file $PARAMS_FILE -p use_sim_time:=true &
-
-# Velocity smoother
-ros2 run nav2_velocity_smoother velocity_smoother --ros-args \
-  --params-file $PARAMS_FILE -p use_sim_time:=true &
-
-# Lifecycle manager (activates all NAV2 nodes)
-ros2 run nav2_lifecycle_manager lifecycle_manager --ros-args \
-  --params-file $PARAMS_FILE -p use_sim_time:=true \
-  -p node_names:="['controller_server','planner_server','behavior_server','bt_navigator','waypoint_follower','smoother_server','velocity_smoother']" \
-  -p autostart:=true
+./start_nav2_manual.sh
 ```
+
+This script launches:
+- Controller server (path following)
+- Planner server (global path planning)
+- Behavior server (recovery behaviors)
+- BT Navigator (behavior tree navigation logic)
+- Waypoint follower
+- Smoother server (path smoothing)
+- Velocity smoother (velocity command smoothing)
+- Lifecycle manager (activates all nodes)
 
 **Note**: Wait 10-15 seconds for all NAV2 nodes to initialize before sending navigation goals.
 
