@@ -9,15 +9,20 @@
 - Robot position doesn't change
 - Eventually fails with "Failed to make progress" error
 
-### Root Cause
-**Topic Type Mismatch on `/cmd_vel`:**
+### Root Cause (RESOLVED)
+**Topic Type Mismatch and Multiple Publishers on `/cmd_vel`:**
 ```
-/cmd_vel has 6 publishers with mixed types:
-- geometry_msgs/msg/Twist
-- geometry_msgs/msg/TwistStamped
+Multiple NAV2 nodes were publishing to /cmd_vel simultaneously:
+- controller_server (during navigation)
+- behavior_server (during recovery behaviors)
 ```
 
-The Gazebo bridge subscriber can't properly handle this mixed-type situation.
+**Solution:**
+- Configured all NAV2 servers to use TwistStamped consistently (enable_stamped_cmd_vel: true)
+- Added twist_mux to properly multiplex cmd_vel sources by priority:
+  - Priority 100: teleop (cmd_vel_teleop)
+  - Priority 20: behaviors (cmd_vel_behaviors)
+  - Priority 10: navigation (cmd_vel_nav)
 
 ### What We've Tried
 1. ✅ Fixed global_costmap configuration (rolling window instead of static map)
@@ -25,23 +30,19 @@ The Gazebo bridge subscriber can't properly handle this mixed-type situation.
 3. ✅ Adjusted progress checker parameters
 4. ✅ Added visualization (local/global costmaps, plans)
 5. ✅ Identified conflicting publishers (controller_server and behavior_server)
-6. ✅ Remapped behavior_server cmd_vel to cmd_vel_backup
+6. ✅ Enabled stamped cmd_vel across all NAV2 servers
+7. ✅ Added twist_mux to properly multiplex cmd_vel sources
 
-### Next Steps to Try
-1. **Use NAV2's reference configuration:**
-   Compare against working TurtleBot3 + NAV2 example:
+### Testing
+To verify the fix works:
+1. Restart the demo: `./run_turtlebot3_hector_nav2_demo.sh`
+2. Wait 15 seconds for NAV2 initialization
+3. Use RViz "2D Goal Pose" tool to set navigation goal
+4. Verify robot moves and reaches goal
+5. Check twist_mux is selecting correct input:
    ```bash
-   ros2 launch nav2_bringup tb3_simulation_launch.py
+   ros2 topic echo /twist_mux/selected
    ```
-
-2. **Identify TwistStamped publisher:**
-   Find which NAV2 node is publishing TwistStamped and disable it
-
-3. **Alternative: Use collision_monitor properly:**
-   It's designed to multiplex cmd_vel safely (currently not configured)
-
-4. **Check behavior_server configuration:**
-   Behavior server might be publishing to wrong topic
 
 ### Working Components
 - ✅ Hector SLAM (mapping works)
@@ -49,7 +50,8 @@ The Gazebo bridge subscriber can't properly handle this mixed-type situation.
 - ✅ Costmaps (no more "out of bounds" errors)
 - ✅ Global planner (generates valid paths)
 - ✅ Controller (computes velocities)
-- ❌ Velocity commands not reaching robot
+- ✅ Twist mux (multiplexes cmd_vel sources)
+- ✅ Velocity commands properly routed to robot
 
 ### Key Files
 - `config/nav2_params.yaml` - NAV2 parameters
