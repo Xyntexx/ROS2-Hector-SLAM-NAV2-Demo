@@ -14,10 +14,10 @@ def generate_launch_description():
     # Declare launch arguments
     use_sim_time = LaunchConfiguration('use_sim_time', default='true')
 
-    # TurtleBot3 Gazebo launch (using local copy)
-    turtlebot3_gazebo_launch = IncludeLaunchDescription(
+    # Bot simulation launch (Gazebo + robot_state_publisher)
+    bot_simulation_launch = IncludeLaunchDescription(
         PythonLaunchDescriptionSource(
-            os.path.join(workspace_dir, 'launch', 'turtlebot3_world_copy.launch.py')
+            os.path.join(workspace_dir, 'launch', 'bot_simulation.launch.py')
         ),
         launch_arguments={'use_sim_time': use_sim_time}.items()
     )
@@ -54,7 +54,7 @@ def generate_launch_description():
         ),
 
         # Launch all components
-        turtlebot3_gazebo_launch,
+        bot_simulation_launch,
         hector_slam_launch,
         nav2_stack_launch,
         rviz_launch,

@@ -97,7 +97,7 @@ The system uses modular launch files that can be launched independently:
 ```bash
 cd ~/hector_ws
 source install/setup.bash
-ros2 launch launch/turtlebot3_world_copy.launch.py
+ros2 launch launch/bot_simulation.launch.py
 ```
 
 #### 2. Launch Hector SLAM Only
@@ -370,7 +370,7 @@ hector_ws/
 │   └── */COLCON_IGNORE                         # Other packages ignored
 ├── launch/
 │   ├── turtlebot3_hector_nav2.launch.py       # Master launch file
-│   ├── turtlebot3_world_copy.launch.py        # Gazebo + robot_state_publisher
+│   ├── bot_simulation.launch.py               # Gazebo + robot_state_publisher
 │   ├── hector_slam.launch.py                  # Hector SLAM only
 │   ├── nav2_stack.launch.py                   # NAV2 + twist_mux
 │   └── rviz.launch.py                         # RViz only
