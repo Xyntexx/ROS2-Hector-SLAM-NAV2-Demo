@@ -382,8 +382,6 @@ hector_ws/
 │   └── turtlebot3_waffle_no_odom_tf/
 │       ├── model.sdf                          # Custom SDF (no odom TF)
 │       └── model.config                       # Model metadata
-├── urdf/
-│   └── turtlebot3_waffle_no_odom_tf.urdf     # Custom URDF
 ├── params/
 │   └── turtlebot3_waffle_no_odom_tf_bridge.yaml  # Gazebo bridge config
 └── README.md                                  # This file
