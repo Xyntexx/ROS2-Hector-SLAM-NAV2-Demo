@@ -20,7 +20,7 @@ import os
 
 from ament_index_python.packages import get_package_share_directory
 from launch import LaunchDescription
-from launch.actions import AppendEnvironmentVariable
+from launch.actions import AppendEnvironmentVariable, DeclareLaunchArgument, SetEnvironmentVariable
 from launch.actions import IncludeLaunchDescription
 from launch.launch_description_sources import PythonLaunchDescriptionSource
 from launch.substitutions import LaunchConfiguration
@@ -28,12 +28,16 @@ from launch_ros.actions import Node
 
 
 def generate_launch_description():
+    # Get workspace directory first
+    workspace_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+
     launch_file_dir = os.path.join(get_package_share_directory('turtlebot3_gazebo'), 'launch')
     ros_gz_sim = get_package_share_directory('ros_gz_sim')
 
     use_sim_time = LaunchConfiguration('use_sim_time', default='true')
     x_pose = LaunchConfiguration('x_pose', default='-2.0')
     y_pose = LaunchConfiguration('y_pose', default='-0.5')
+    turtlebot3_model = LaunchConfiguration('model', default='waffle_no_odom_tf')
 
     world = os.path.join(
         get_package_share_directory('turtlebot3_gazebo'),
@@ -55,49 +59,112 @@ def generate_launch_description():
         launch_arguments={'gz_args': '-g -v2 ', 'on_exit_shutdown': 'true'}.items()
     )
 
-    robot_state_publisher_cmd = IncludeLaunchDescription(
-        PythonLaunchDescriptionSource(
-            os.path.join(launch_file_dir, 'robot_state_publisher.launch.py')
-        ),
-        launch_arguments={'use_sim_time': use_sim_time}.items()
+    # Custom robot_state_publisher that uses our URDF from workspace
+    # Try workspace first, fallback to package
+    workspace_urdf = os.path.join(workspace_dir, 'urdf', 'turtlebot3_waffle_no_odom_tf.urdf')
+    if os.path.exists(workspace_urdf):
+        urdf_path = workspace_urdf
+    else:
+        urdf_path = os.path.join(
+            get_package_share_directory('turtlebot3_gazebo'),
+            'urdf',
+            'turtlebot3_waffle_pi.urdf')
+
+    with open(urdf_path, 'r') as urdf_file:
+        robot_description = urdf_file.read()
+
+    robot_state_publisher_cmd = Node(
+        package='robot_state_publisher',
+        executable='robot_state_publisher',
+        name='robot_state_publisher',
+        output='screen',
+        parameters=[{
+            'use_sim_time': use_sim_time,
+            'robot_description': robot_description
+        }]
     )
 
-    spawn_turtlebot_cmd = IncludeLaunchDescription(
-        PythonLaunchDescriptionSource(
-            os.path.join(launch_file_dir, 'spawn_turtlebot3.launch.py')
-        ),
-        launch_arguments={
-            'x_pose': x_pose,
-            'y_pose': y_pose
-        }.items()
+    # Custom spawn - use our model SDF directly
+    model_sdf = os.path.join(workspace_dir, 'models', 'turtlebot3_waffle_no_odom_tf', 'model.sdf')
+
+    spawn_turtlebot_cmd = Node(
+        package='ros_gz_sim',
+        executable='create',
+        arguments=[
+            '-name', 'turtlebot3',
+            '-file', model_sdf,
+            '-x', x_pose,
+            '-y', y_pose,
+            '-z', '0.01'
+        ],
+        output='screen',
+    )
+
+    # Bridge params
+    bridge_params = os.path.join(workspace_dir, 'params', 'turtlebot3_waffle_no_odom_tf_bridge.yaml')
+
+    start_gazebo_ros_bridge_cmd = Node(
+        package='ros_gz_bridge',
+        executable='parameter_bridge',
+        arguments=[
+            '--ros-args',
+            '-p',
+            f'config_file:={bridge_params}',
+        ],
+        output='screen',
+    )
+
+    start_gazebo_ros_image_bridge_cmd = Node(
+        package='ros_gz_image',
+        executable='image_bridge',
+        arguments=['/camera/image_raw'],
+        output='screen',
     )
 
     set_env_vars_resources = AppendEnvironmentVariable(
             'GZ_SIM_RESOURCE_PATH',
+            os.path.join(workspace_dir, 'models') + ':' +
             os.path.join(
                 get_package_share_directory('turtlebot3_gazebo'),
                 'models'))
 
-    # Regular (non-static) transform publisher: base_footprint -> base_scan
-    # This publishes continuously to /tf instead of /tf_static
-    tf_base_scan = Node(
-        package='tf2_ros',
-        executable='static_transform_publisher',
-        name='tf_base_footprint_to_base_scan',
-        arguments=['--x', '0', '--y', '0', '--z', '0.08',
-                   '--roll', '0', '--pitch', '0', '--yaw', '0',
-                   '--frame-id', 'base_footprint', '--child-frame-id', 'base_scan'],
-        parameters=[{'use_sim_time': use_sim_time}]
-    )
+    # Set TURTLEBOT3_MODEL environment variable
+    set_turtlebot3_model_env = SetEnvironmentVariable(
+        'TURTLEBOT3_MODEL', turtlebot3_model)
 
-    ld = LaunchDescription()
 
-    # Add the commands to the launch description
-    ld.add_action(gzserver_cmd)
-    ld.add_action(gzclient_cmd)
-    ld.add_action(spawn_turtlebot_cmd)
-    ld.add_action(robot_state_publisher_cmd)
-    ld.add_action(set_env_vars_resources)
-    ld.add_action(tf_base_scan)
+    return LaunchDescription([
+        # Declare arguments
+        DeclareLaunchArgument(
+            'model',
+            default_value='waffle_pi',
+            description='TurtleBot3 model type (burger, waffle, waffle_pi)'
+        ),
+        DeclareLaunchArgument(
+            'use_sim_time',
+            default_value='true',
+            description='Use simulation time'
+        ),
+        DeclareLaunchArgument(
+            'x_pose',
+            default_value='-2.0',
+            description='Initial x position'
+        ),
+        DeclareLaunchArgument(
+            'y_pose',
+            default_value='-0.5',
+            description='Initial y position'
+        ),
 
-    return ld
+        # Set environment variables
+        set_env_vars_resources,
+        set_turtlebot3_model_env,
+
+        # Launch components
+        gzserver_cmd,
+        gzclient_cmd,
+        robot_state_publisher_cmd,
+        spawn_turtlebot_cmd,
+        start_gazebo_ros_bridge_cmd,
+        start_gazebo_ros_image_bridge_cmd,
+    ])
