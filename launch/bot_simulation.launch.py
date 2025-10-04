@@ -20,7 +20,7 @@ import os
 
 from ament_index_python.packages import get_package_share_directory
 from launch import LaunchDescription
-from launch.actions import AppendEnvironmentVariable, DeclareLaunchArgument, SetEnvironmentVariable
+from launch.actions import AppendEnvironmentVariable, DeclareLaunchArgument
 from launch.actions import IncludeLaunchDescription
 from launch.launch_description_sources import PythonLaunchDescriptionSource
 from launch.substitutions import LaunchConfiguration
@@ -30,14 +30,11 @@ from launch_ros.actions import Node
 def generate_launch_description():
     # Get workspace directory first
     workspace_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-
-    launch_file_dir = os.path.join(get_package_share_directory('turtlebot3_gazebo'), 'launch')
     ros_gz_sim = get_package_share_directory('ros_gz_sim')
 
     use_sim_time = LaunchConfiguration('use_sim_time', default='true')
     x_pose = LaunchConfiguration('x_pose', default='-2.0')
     y_pose = LaunchConfiguration('y_pose', default='-0.5')
-    turtlebot3_model = LaunchConfiguration('model', default='waffle_no_odom_tf')
 
     world = os.path.join(
         get_package_share_directory('turtlebot3_gazebo'),
@@ -59,16 +56,8 @@ def generate_launch_description():
         launch_arguments={'gz_args': '-g -v2 ', 'on_exit_shutdown': 'true'}.items()
     )
 
-    # Custom robot_state_publisher that uses our URDF from workspace
-    # Try workspace first, fallback to package
-    workspace_urdf = os.path.join(workspace_dir, 'urdf', 'turtlebot3_waffle_no_odom_tf.urdf')
-    if os.path.exists(workspace_urdf):
-        urdf_path = workspace_urdf
-    else:
-        urdf_path = os.path.join(
-            get_package_share_directory('turtlebot3_gazebo'),
-            'urdf',
-            'turtlebot3_waffle_pi.urdf')
+    # Robot state publisher using custom URDF from workspace
+    urdf_path = os.path.join(workspace_dir, 'urdf', 'turtlebot3_waffle_no_odom_tf.urdf')
 
     with open(urdf_path, 'r') as urdf_file:
         robot_description = urdf_file.read()
@@ -128,18 +117,7 @@ def generate_launch_description():
                 get_package_share_directory('turtlebot3_gazebo'),
                 'models'))
 
-    # Set TURTLEBOT3_MODEL environment variable
-    set_turtlebot3_model_env = SetEnvironmentVariable(
-        'TURTLEBOT3_MODEL', turtlebot3_model)
-
-
     return LaunchDescription([
-        # Declare arguments
-        DeclareLaunchArgument(
-            'model',
-            default_value='waffle_pi',
-            description='TurtleBot3 model type (burger, waffle, waffle_pi)'
-        ),
         DeclareLaunchArgument(
             'use_sim_time',
             default_value='true',
@@ -158,7 +136,6 @@ def generate_launch_description():
 
         # Set environment variables
         set_env_vars_resources,
-        set_turtlebot3_model_env,
 
         # Launch components
         gzserver_cmd,
