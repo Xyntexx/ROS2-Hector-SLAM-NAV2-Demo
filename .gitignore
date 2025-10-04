@@ -29,4 +29,7 @@ Thumbs.db
 *.bak
 
 # Log files
-*.logTODO.md
+*.log
+
+# 
+TODO.md
