@@ -1,14 +1,16 @@
-# TurtleBot3 + Hector SLAM Demo
+# TurtleBot3 + Hector SLAM + NAV2 Workspace
 
-This repository contains a complete setup for running TurtleBot3 with Hector SLAM for real-time mapping and localization in ROS2 Jazzy.
+This workspace provides a complete setup for running TurtleBot3 with Hector SLAM for odometry-free SLAM and NAV2 for autonomous navigation in ROS2 Jazzy.
 
 ## Overview
 
-This demo combines:
-- **TurtleBot3 Burger**: Differential drive robot with lidar sensor
-- **Hector SLAM**: Real-time SLAM algorithm for mapping
+This system combines:
+- **TurtleBot3 Waffle**: Differential drive robot with lidar sensor (custom no-odom model)
+- **Hector SLAM**: Odometry-free SLAM for real-time mapping and localization
+- **NAV2**: Complete autonomous navigation stack with MPPI controller
 - **Gazebo**: 3D robot simulation environment
-- **RViz2**: Visualization of mapping and robot state
+- **RViz2**: Visualization of mapping, localization, and navigation
+- **Twist Mux**: Command velocity multiplexing (teleop/navigation/behaviors)
 
 ## Prerequisites
 
@@ -31,27 +33,30 @@ sudo apt install -y \
   ros-jazzy-turtlebot3-teleop
 ```
 
-### 2. Install NAV2 and twist_mux (for autonomous navigation)
+### 2. Install NAV2, Twist Mux, and Dependencies
 
 ```bash
 sudo apt install -y \
   ros-jazzy-navigation2 \
   ros-jazzy-nav2-bringup \
-  ros-jazzy-twist-mux
+  ros-jazzy-twist-mux \
+  ros-jazzy-ros-gz-bridge \
+  ros-jazzy-ros-gz-image \
+  ros-jazzy-ros-gz-sim
 ```
 
-### 3. Clone and Build Hector SLAM for ROS2
+### 3. Clone and Build This Workspace
 
 ```bash
-# Create workspace
-mkdir -p ~/hector_ws/src
-cd ~/hector_ws/src
+# Clone this repository
+cd ~
+git clone <repository-url> hector_ws
+cd hector_ws
 
-# Clone this repository (or the hector_slam_ros2 if separate)
-git clone <repository-url>
+# Initialize submodules (hector_slam_ros2)
+git submodule update --init --recursive
 
 # Build the workspace
-cd ~/hector_ws
 source /opt/ros/jazzy/setup.bash
 colcon build --packages-select hector_nav_msgs hector_mapping
 
@@ -59,100 +64,122 @@ colcon build --packages-select hector_nav_msgs hector_mapping
 source install/setup.bash
 ```
 
+**Note**: Only `hector_nav_msgs` and `hector_mapping` are built from the hector_slam_ros2 submodule. Other packages have `COLCON_IGNORE` files to avoid dependency issues.
+
 ## Quick Start
 
-### Option 1: Run Hector SLAM Only (Mapping Only)
+### Recommended: Full System Launch (Mapping + Navigation)
 
 ```bash
 cd ~/hector_ws
-./run_turtlebot3_hector_demo.sh
+source install/setup.bash
+ros2 launch launch/turtlebot3_hector_nav2.launch.py
 ```
 
-This automatically starts:
-- TurtleBot3 Gazebo simulation
-- Hector SLAM mapping
-- RViz2 visualization
-- All necessary transforms and bridges
+This launches all components simultaneously:
+- **Gazebo**: TurtleBot3 simulation with custom no-odom model
+- **Hector SLAM**: Odometry-free SLAM (map→base_link transform)
+- **NAV2**: Full navigation stack with MPPI controller
+- **Twist Mux**: Command multiplexing for teleop/nav/behaviors
+- **RViz2**: Visualization
 
-### Option 2: Run Hector SLAM + NAV2 (Mapping + Navigation)
+**What you get:**
+- Real-time SLAM mapping and localization (no odometry needed)
+- Autonomous navigation with obstacle avoidance
+- Keyboard teleop (priority 100) overrides navigation
+- All systems auto-start and configure correctly
 
+### Modular Launch Options
+
+The system uses modular launch files that can be launched independently:
+
+#### 1. Launch Gazebo Simulation Only
 ```bash
 cd ~/hector_ws
-./run_turtlebot3_hector_nav2_demo.sh
+source install/setup.bash
+ros2 launch launch/turtlebot3_world_copy.launch.py
 ```
 
-This automatically starts:
-- TurtleBot3 Gazebo simulation
-- Hector SLAM mapping (provides real-time map and localization)
-- NAV2 navigation stack (autonomous navigation)
-- RViz2 visualization
-- All necessary transforms and bridges
-
-**Note**: Use this option when you want autonomous navigation capabilities. You can set navigation goals using the "2D Goal Pose" tool in RViz2.
-
-### Option 3: Manual Step-by-Step Launch
-
-#### Terminal 1: Start TurtleBot3 Gazebo World
-```bash
-export TURTLEBOT3_MODEL=burger
-source /opt/ros/jazzy/setup.bash
-ros2 launch turtlebot3_gazebo turtlebot3_world.launch.py
-```
-
-#### Terminal 2: Static Transform (Required)
-```bash
-source /opt/ros/jazzy/setup.bash
-ros2 run tf2_ros static_transform_publisher 0 0 0.08 0 0 0 base_footprint base_scan
-```
-
-#### Terminal 3: Start Hector SLAM
-```bash
-source /opt/ros/jazzy/setup.bash
-source ~/hector_ws/install/setup.bash
-ros2 run hector_mapping hector_mapping_node --ros-args \
-  -p use_sim_time:=true \
-  -p base_frame:=base_footprint \
-  -p odom_frame:=odom \
-  -p map_frame:=map \
-  -p scan_topic:=/scan \
-  -p pub_map_odom_transform:=true
-```
-
-#### Terminal 4 (Optional): Start NAV2 Navigation Stack
-
-If you want autonomous navigation capabilities, launch the NAV2 components:
-
+#### 2. Launch Hector SLAM Only
 ```bash
 cd ~/hector_ws
-./start_nav2_manual.sh
+source install/setup.bash
+ros2 launch launch/hector_slam.launch.py
 ```
 
-This script launches:
-- Controller server (path following)
-- Planner server (global path planning)
-- Behavior server (recovery behaviors)
-- BT Navigator (behavior tree navigation logic)
-- Waypoint follower
-- Smoother server (path smoothing)
-- Velocity smoother (velocity command smoothing)
-- Lifecycle manager (activates all nodes)
-
-**Note**: Wait 10-15 seconds for all NAV2 nodes to initialize before sending navigation goals.
-
-#### Terminal 5: Start RViz2
+#### 3. Launch NAV2 Stack Only
 ```bash
-source /opt/ros/jazzy/setup.bash
-rviz2 -d config/turtlebot3_hector_slam_config.rviz
+cd ~/hector_ws
+source install/setup.bash
+ros2 launch launch/nav2_stack.launch.py
 ```
 
-#### Terminal 6: Control the Robot
+#### 4. Launch RViz Only
 ```bash
-source /opt/ros/jazzy/setup.bash
-export TURTLEBOT3_MODEL=burger
-ros2 run turtlebot3_teleop teleop_keyboard
+cd ~/hector_ws
+source install/setup.bash
+ros2 launch launch/rviz.launch.py
 ```
 
-**Alternative**: If you launched NAV2 (Terminal 4), you can skip teleop and use RViz2's "2D Goal Pose" tool for autonomous navigation.
+## Architecture
+
+### Key Design Decisions
+
+**1. Odometry-Free Operation**
+- Custom Gazebo model with `<tf_topic></tf_topic>` disables odometry TF publishing
+- Hector SLAM publishes `map→base_link` directly (no odom frame)
+- NAV2 configured to use `map` frame for local costmap
+
+**2. Frame Structure**
+```
+map (published by Hector SLAM)
+ └─ base_link (published by Hector SLAM)
+     ├─ base_scan (static, from robot_state_publisher)
+     ├─ camera_link (static, from robot_state_publisher)
+     └─ wheel_*_link (static, from robot_state_publisher)
+```
+
+**3. Transform Lookup Fix**
+- Hector SLAM modified to use `rclcpp::Time(0)` for transform lookups
+- Works with static transforms from robot_state_publisher
+- No timing issues with /tf_static
+
+**4. Twist Mux Priority**
+- Teleop: Priority 100 (highest) - `cmd_vel_teleop`
+- Behaviors: Priority 20 - `cmd_vel_behaviors`
+- Navigation: Priority 10 (lowest) - `cmd_vel_nav`
+- Output: `cmd_vel` to Gazebo
+
+### Hector SLAM Configuration
+
+```yaml
+base_frame: 'base_link'           # Robot base frame
+odom_frame: 'base_link'           # No separate odom (same as base)
+map_frame: 'map'                  # Map frame
+scan_topic: '/scan'               # Lidar topic
+pub_map_odom_transform: False     # Publish map->base_link directly
+```
+
+### NAV2 Configuration
+
+```yaml
+# Local Costmap (uses map frame, no odom)
+local_costmap:
+  global_frame: map
+  robot_base_frame: base_link
+  rolling_window: true
+
+# Global Costmap (uses Hector SLAM map)
+global_costmap:
+  global_frame: map
+  robot_base_frame: base_link
+  static_layer: True               # Uses /map from Hector SLAM
+
+# Behavior Server (uses map frame)
+behavior_server:
+  local_frame: map
+  global_frame: map
+```
 
 ## Using NAV2 Navigation
 
@@ -240,60 +267,126 @@ ros2 topic pub /cmd_vel geometry_msgs/msg/Twist "{linear: {x: 0, y: 0, z: 0}, an
 | `/odom`    | `nav_msgs/msg/Odometry`      | Robot odometry          |
 | `/tf`      | `tf2_msgs/msg/TFMessage`     | Transform tree          |
 
-## Hector SLAM Parameters
+## Key Parameters
 
-Key parameters configured for TurtleBot3:
-- **Base Frame**: `base_footprint`
-- **Map Resolution**: 0.05m
-- **Map Size**: 2048x2048 cells
-- **Multi-resolution**: 3 levels (0.025m, 0.05m, 0.1m)
-- **Update Thresholds**: Distance 0.4m, Angle 0.9 rad
+### Hector SLAM (launch/hector_slam.launch.py)
+```python
+base_frame: 'base_link'              # Robot frame (not base_footprint!)
+odom_frame: 'base_link'              # No odom frame (same as base)
+map_frame: 'map'
+pub_map_odom_transform: False        # Publishes map->base_link directly
+map_resolution: 0.025                # 2.5cm resolution
+map_size: 1024                       # 1024x1024 cells
+update_factor_free: 0.4
+update_factor_occupied: 0.9
+map_update_distance_threshold: 0.4   # Update every 0.4m
+map_update_angle_threshold: 0.9      # Update every 0.9 rad
+```
+
+### NAV2 Controller (MPPI)
+```yaml
+controller_frequency: 20.0
+time_steps: 56
+batch_size: 2000
+vx_max: 0.5
+wz_max: 1.9
+motion_model: "DiffDrive"
+```
 
 ## Troubleshooting
 
 ### Transform Errors
 If you see "Could not transform laser scan into base_frame" errors:
-```bash
-# Check if static transform publisher is running
-ros2 topic echo /tf_static
 
-# Manually add the missing transform
-ros2 run tf2_ros static_transform_publisher 0 0 0.08 0 0 0 base_footprint base_scan
+**Check TF tree:**
+```bash
+ros2 run tf2_tools view_frames
+# Should show: map -> base_link -> base_scan
 ```
 
+**Common causes:**
+- robot_state_publisher not running
+- Wrong base_frame in Hector config (should be `base_link`, not `base_footprint`)
+- Gazebo model publishing conflicting transforms
+
+### "Two or more unconnected trees" Error
+This means Hector is looking for a frame that doesn't exist in the TF tree:
+```bash
+# Debug: See all frames
+ros2 run tf2_ros tf2_echo map base_link
+ros2 run tf2_ros tf2_echo base_link base_scan
+
+# Fix: Update hector_slam.launch.py to use correct frames
+```
+
+### NAV2 "Timed out waiting for transform from base_link to odom"
+NAV2 is configured for standard odometry setup. Fix:
+- Verify `config/nav2_params.yaml` has `global_frame: map` for local_costmap
+- Verify `local_frame: map` for behavior_server
+- No `odom` frame should exist in this setup
+
 ### No Laser Data
-Check if scan topic is publishing:
 ```bash
 ros2 topic echo /scan --once
-ros2 topic hz /scan
+ros2 topic hz /scan  # Should be ~5-10 Hz
 ```
 
 ### Robot Not Moving
-Verify cmd_vel topic has subscribers:
 ```bash
+# Check twist_mux
+ros2 node info /twist_mux
+
+# Check cmd_vel subscribers
 ros2 topic info /cmd_vel
+
+# Manually command
+ros2 topic pub /cmd_vel_teleop geometry_msgs/msg/Twist "{linear: {x: 0.2}}" --rate 10
 ```
 
 ### Mapping Not Working
-Check Hector SLAM status:
 ```bash
+# Check Hector SLAM
 ros2 topic echo /map --once
-ros2 node list | grep hector
+ros2 node info /hector_slam
+
+# Check transforms
+ros2 run tf2_ros tf2_monitor map base_link
+```
+
+### Build Errors for hector_slam_ros2
+Only `hector_mapping` and `hector_nav_msgs` are needed. Other packages should have `COLCON_IGNORE` files:
+```bash
+cd ~/hector_ws/hector_slam_ros2
+ls */COLCON_IGNORE  # Should list 11 ignored packages
 ```
 
 ## File Structure
 
 ```
-turtlebot3_hector_slam_demo/
-├── hector_slam_ros2/                      # Hector SLAM ROS2 packages
+hector_ws/
+├── hector_slam_ros2/                           # Submodule: Hector SLAM ROS2
+│   ├── hector_mapping/                         # Core SLAM package (built)
+│   ├── hector_nav_msgs/                        # Message definitions (built)
+│   └── */COLCON_IGNORE                         # Other packages ignored
+├── launch/
+│   ├── turtlebot3_hector_nav2.launch.py       # Master launch file
+│   ├── turtlebot3_world_copy.launch.py        # Gazebo + robot_state_publisher
+│   ├── hector_slam.launch.py                  # Hector SLAM only
+│   ├── nav2_stack.launch.py                   # NAV2 + twist_mux
+│   └── rviz.launch.py                         # RViz only
 ├── config/
-│   ├── turtlebot3_hector_slam_config.rviz # RViz configuration
-│   └── nav2_params.yaml                   # NAV2 parameters for Hector SLAM integration
-├── run_turtlebot3_hector_demo.sh          # Hector SLAM only demo script
-├── run_turtlebot3_hector_nav2_demo.sh     # Hector SLAM + NAV2 demo script
-├── turtlebot3_hector_slam_launch.py       # Launch file
-├── .gitignore                             # Git ignore file
-└── README.md                              # This file
+│   ├── nav2_params.yaml                       # NAV2 configuration (map frame)
+│   ├── twist_mux.yaml                         # Twist mux configuration
+│   └── turtlebot3_hector_slam_config.rviz    # RViz layout
+├── models/
+│   └── turtlebot3_waffle_no_odom_tf/
+│       ├── model.sdf                          # Custom SDF (no odom TF)
+│       └── model.config                       # Model metadata
+├── urdf/
+│   └── turtlebot3_waffle_no_odom_tf.urdf     # Custom URDF
+├── params/
+│   └── turtlebot3_waffle_no_odom_tf_bridge.yaml  # Gazebo bridge config
+└── README.md                                  # This file
 ```
 
 ## Tips for Best Results
