@@ -56,8 +56,12 @@ def generate_launch_description():
         launch_arguments={'gz_args': '-g -v2 ', 'on_exit_shutdown': 'true'}.items()
     )
 
-    # Robot state publisher using custom URDF from workspace
-    urdf_path = os.path.join(workspace_dir, 'urdf', 'turtlebot3_waffle_no_odom_tf.urdf')
+    # Robot state publisher using system URDF
+    urdf_path = os.path.join(
+        get_package_share_directory('turtlebot3_gazebo'),
+        'urdf',
+        'turtlebot3_waffle_pi.urdf'
+    )
 
     with open(urdf_path, 'r') as urdf_file:
         robot_description = urdf_file.read()
