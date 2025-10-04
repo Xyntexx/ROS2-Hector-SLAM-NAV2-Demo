@@ -17,11 +17,11 @@ def generate_launch_description():
         name='hector_slam',
         parameters=[
             {'use_sim_time': use_sim_time},
-            {'base_frame': 'base_link'},
-            {'odom_frame': 'base_link'},  # Use base_link as odom (no odometry)
+            {'base_frame': 'base_footprint'},
+            {'odom_frame': 'base_footprint'},  # Use base_footprint as odom (no odometry)
             {'map_frame': 'map'},
             {'scan_topic': '/scan'},
-            {'pub_map_odom_transform': False}  # Publish map->base_link directly
+            {'pub_map_odom_transform': True}  # Publish map->base_footprint transform
         ],
         output='screen'
     )
