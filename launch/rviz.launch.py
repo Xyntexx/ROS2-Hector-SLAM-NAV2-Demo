@@ -11,7 +11,7 @@ def generate_launch_description():
     workspace_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 
     # Path to RViz config file
-    rviz_config_file = os.path.join(workspace_dir, 'config', 'turtlebot3_hector_slam_config.rviz')
+    rviz_config_file = os.path.join(workspace_dir, 'config', 'navigation.rviz')
 
     # Declare launch arguments
     use_sim_time = LaunchConfiguration('use_sim_time', default='true')

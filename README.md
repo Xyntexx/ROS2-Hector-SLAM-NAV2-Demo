@@ -377,7 +377,7 @@ hector_ws/
 ├── config/
 │   ├── nav2_params.yaml                       # NAV2 configuration (map frame)
 │   ├── twist_mux.yaml                         # Twist mux configuration
-│   └── turtlebot3_hector_slam_config.rviz    # RViz layout
+│   └── navigation.rviz                        # RViz layout with NAV2 panel
 ├── models/
 │   └── turtlebot3_waffle_no_odom_tf/
 │       ├── model.sdf                          # Custom SDF (no odom TF)
