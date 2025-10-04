@@ -1,4 +1,12 @@
 <?xml version="1.0" ?>
+<!--
+  Modified from turtlebot3_waffle_pi model
+  Original source: turtlebot3_gazebo package (Apache 2.0 License)
+  Copyright ROBOTIS CO., LTD.
+
+  Modification: Line 501 - Changed <tf_topic>/tf</tf_topic> to <tf_topic></tf_topic>
+  to disable odometry TF publishing (Hector SLAM provides transforms instead)
+-->
 <sdf version="1.8">
   <model name="turtlebot3_waffle_pi">
   <pose>0.0 0.0 0.0 0.0 0.0 0.0</pose>
