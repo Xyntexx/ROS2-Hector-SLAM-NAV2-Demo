@@ -125,7 +125,7 @@ def main():
     width, height = 15, 15   # odd numbers work best
     cell_size = 1.0
     wall_thickness = 0.1
-    wall_height = 1.0
+    wall_height = 0.2
     output_file = Path("block_maze.world")
 
     maze = generate_maze(width, height)
