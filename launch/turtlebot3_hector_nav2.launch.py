@@ -2,9 +2,10 @@
 
 import os
 from launch import LaunchDescription
-from launch.actions import DeclareLaunchArgument, IncludeLaunchDescription
+from launch.actions import DeclareLaunchArgument, IncludeLaunchDescription, ExecuteProcess
 from launch.launch_description_sources import PythonLaunchDescriptionSource
 from launch.substitutions import LaunchConfiguration
+from launch_ros.actions import Node
 
 
 def generate_launch_description():
@@ -46,6 +47,13 @@ def generate_launch_description():
         launch_arguments={'use_sim_time': use_sim_time}.items()
     )
 
+    # Simple exploration node
+    exploration_node = ExecuteProcess(
+        cmd=['python3', os.path.join(workspace_dir, 'scripts', 'simple_exploration.py')],
+        output='screen',
+        name='simple_explorer'
+    )
+
     return LaunchDescription([
         DeclareLaunchArgument(
             'use_sim_time',
@@ -58,4 +66,5 @@ def generate_launch_description():
         hector_slam_launch,
         nav2_stack_launch,
         rviz_launch,
+        exploration_node,
     ])
