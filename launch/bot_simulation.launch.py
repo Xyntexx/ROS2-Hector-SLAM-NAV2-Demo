@@ -56,12 +56,8 @@ def generate_launch_description():
         launch_arguments={'gz_args': '-g -v2 ', 'on_exit_shutdown': 'true'}.items()
     )
 
-    # Robot state publisher using system URDF
-    urdf_path = os.path.join(
-        get_package_share_directory('turtlebot3_gazebo'),
-        'urdf',
-        'turtlebot3_waffle_pi.urdf'
-    )
+    # Robot state publisher using custom URDF
+    urdf_path = os.path.join(workspace_dir, 'models', 'custom_4wheel_robot', 'robot.urdf')
 
     with open(urdf_path, 'r') as urdf_file:
         robot_description = urdf_file.read()
@@ -78,17 +74,17 @@ def generate_launch_description():
     )
 
     # Custom spawn - use our model SDF directly
-    model_sdf = os.path.join(workspace_dir, 'models', 'turtlebot3_waffle_no_odom_tf', 'model.sdf')
+    model_sdf = os.path.join(workspace_dir, 'models', 'custom_4wheel_robot', 'model.sdf')
 
     spawn_turtlebot_cmd = Node(
         package='ros_gz_sim',
         executable='create',
         arguments=[
-            '-name', 'turtlebot3',
+            '-name', 'custom_4wheel_robot',
             '-file', model_sdf,
             '-x', x_pose,
             '-y', y_pose,
-            '-z', '0.01'
+            '-z', '0.092'
         ],
         output='screen',
     )
