@@ -3,8 +3,9 @@
 import os
 from launch import LaunchDescription
 from launch.actions import DeclareLaunchArgument, IncludeLaunchDescription
+from launch.conditions import IfCondition
 from launch.launch_description_sources import PythonLaunchDescriptionSource
-from launch.substitutions import LaunchConfiguration
+from launch.substitutions import LaunchConfiguration, PythonExpression
 
 
 def generate_launch_description():
@@ -13,13 +14,14 @@ def generate_launch_description():
 
     # Declare launch arguments
     use_sim_time = LaunchConfiguration('use_sim_time', default='true')
+    headless = LaunchConfiguration('headless', default='false')
 
     # Bot simulation launch (Gazebo + robot_state_publisher)
     bot_simulation_launch = IncludeLaunchDescription(
         PythonLaunchDescriptionSource(
             os.path.join(workspace_dir, 'launch', 'bot_simulation.launch.py')
         ),
-        launch_arguments={'use_sim_time': use_sim_time}.items()
+        launch_arguments={'use_sim_time': use_sim_time, 'headless': headless}.items()
     )
 
     # Hector SLAM launch
@@ -38,12 +40,13 @@ def generate_launch_description():
         launch_arguments={'use_sim_time': use_sim_time}.items()
     )
 
-    # RViz launch
+    # RViz launch (only if not headless)
     rviz_launch = IncludeLaunchDescription(
         PythonLaunchDescriptionSource(
             os.path.join(workspace_dir, 'launch', 'rviz.launch.py')
         ),
-        launch_arguments={'use_sim_time': use_sim_time}.items()
+        launch_arguments={'use_sim_time': use_sim_time}.items(),
+        condition=IfCondition(PythonExpression(["'", headless, "' == 'false'"]))
     )
 
     return LaunchDescription([
@@ -51,6 +54,11 @@ def generate_launch_description():
             'use_sim_time',
             default_value='true',
             description='Use simulation time'
+        ),
+        DeclareLaunchArgument(
+            'headless',
+            default_value='false',
+            description='Run without GUI (no Gazebo client, no RViz)'
         ),
 
         # Launch all components
