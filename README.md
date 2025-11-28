@@ -66,18 +66,29 @@ source install/setup.bash
 
 **Note**: Only `hector_nav_msgs` and `hector_mapping` are built from the hector_slam_ros2 submodule. Other packages have `COLCON_IGNORE` files to avoid dependency issues.
 
+### 4. Clone LD19 Lidar Driver (for real hardware)
+
+```bash
+cd ~/hector_ws
+git clone https://github.com/ldrobotSensorTeam/ldlidar_stl_ros2.git
+colcon build --packages-select ldlidar_stl_ros2
+```
+
 ## Quick Start
 
 ### Real Hardware Setup (LD19 Lidar + Motor Controller)
 
 For running with real hardware (LD19 lidar and differential drive motors) via TCP serial bridge:
 
-**On the robot/serial host machine (Windows):**
+**On the robot (Raspberry Pi) or serial host machine:**
 ```bash
-cd C:\repos\ros-serial-bridge
-python main.py --lidar-port COM3 --motor-port COM6
+# Install pyserial
+pip install pyserial
+
+# Run the serial bridge
+./scripts/serial_bridge.py --lidar-port /dev/ttyUSB0 --motor-port /dev/ttyUSB1
 # Or use emulator for testing without motor hardware:
-python main.py --lidar-port COM3 --motor-port emulate
+./scripts/serial_bridge.py --lidar-port /dev/ttyUSB0 --motor-port emulate
 ```
 
 **On the ROS2 machine (WSL/Linux):**
