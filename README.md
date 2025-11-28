@@ -68,7 +68,40 @@ source install/setup.bash
 
 ## Quick Start
 
-### Recommended: Full System Launch (Mapping + Navigation)
+### Real Hardware Setup (LD19 Lidar + Motor Controller)
+
+For running with real hardware (LD19 lidar and differential drive motors) via TCP serial bridge:
+
+**On the robot/serial host machine (Windows):**
+```bash
+cd C:\repos\ros-serial-bridge
+python main.py --lidar-port COM3 --motor-port COM6
+# Or use emulator for testing without motor hardware:
+python main.py --lidar-port COM3 --motor-port emulate
+```
+
+**On the ROS2 machine (WSL/Linux):**
+```bash
+cd ~/hector_ws
+source install/setup.bash
+
+# Start the serial bridge (auto-reconnects)
+./scripts/socat_bridge.sh &
+
+# Launch the full system
+ros2 launch launch/real_lidar_slam.launch.py
+```
+
+This launches:
+- **LD19 Lidar**: Real lidar via `/tmp/lidar` serial port
+- **Hector SLAM**: Odometry-free SLAM for mapping
+- **NAV2**: Full navigation stack with MPPI controller
+- **Diff Drive Controller**: Motor control via `/tmp/motor` serial port
+- **RViz2**: Visualization
+
+**Motor Protocol:** Text-based `L:<pwm>,R:<pwm>\n` where PWM is -255 to 255.
+
+### Simulation: Full System Launch (Mapping + Navigation)
 
 ```bash
 cd ~/hector_ws
@@ -368,8 +401,16 @@ hector_ws/
 │   ├── hector_mapping/                         # Core SLAM package (built)
 │   ├── hector_nav_msgs/                        # Message definitions (built)
 │   └── */COLCON_IGNORE                         # Other packages ignored
+├── src/
+│   └── robot_motor_controller/                 # Differential drive motor controller
+│       ├── scripts/diff_drive_node.py          # /cmd_vel to serial motor commands
+│       ├── package.xml
+│       └── CMakeLists.txt
+├── scripts/
+│   └── socat_bridge.sh                        # Auto-reconnecting TCP-to-serial bridge
 ├── launch/
-│   ├── turtlebot3_hector_nav2.launch.py       # Master launch file
+│   ├── turtlebot3_hector_nav2.launch.py       # Master launch file (simulation)
+│   ├── real_lidar_slam.launch.py              # Real hardware launch (LD19 + motors + NAV2)
 │   ├── bot_simulation.launch.py               # Gazebo + robot_state_publisher
 │   ├── hector_slam.launch.py                  # Hector SLAM only
 │   ├── nav2_stack.launch.py                   # NAV2 + twist_mux

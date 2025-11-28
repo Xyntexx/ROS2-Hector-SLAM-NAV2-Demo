@@ -7,13 +7,13 @@ bt_navigator:
     default_server_timeout: 20
     wait_for_service_timeout: 1000
     action_server_result_timeout: 900.0
-    enable_stamped_cmd_vel: true
+    enable_stamped_cmd_vel: false
     navigators: ["navigate_to_pose", "navigate_through_poses"]
     navigate_to_pose:
       plugin: "nav2_bt_navigator::NavigateToPoseNavigator"
     navigate_through_poses:
       plugin: "nav2_bt_navigator::NavigateThroughPosesNavigator"
-    use_sim_time: true
+    use_sim_time: false
 
 controller_server:
   ros__parameters:
@@ -27,8 +27,8 @@ controller_server:
     goal_checker_plugins: ["general_goal_checker"]
     controller_plugins: ["FollowPath"]
     use_realtime_priority: false
-    enable_stamped_cmd_vel: true
-    use_sim_time: true
+    enable_stamped_cmd_vel: false
+    use_sim_time: false
 
     progress_checker:
       plugin: "nav2_controller::SimpleProgressChecker"
@@ -137,7 +137,7 @@ local_costmap:
       resolution: 0.05
       robot_radius: 0.22
       plugins: ["voxel_layer", "inflation_layer"]
-      use_sim_time: true
+      use_sim_time: false
       inflation_layer:
         plugin: "nav2_costmap_2d::InflationLayer"
         cost_scaling_factor: 3.0
@@ -176,7 +176,7 @@ global_costmap:
       track_unknown_space: true
       rolling_window: false        # Use static map from Hector SLAM
       plugins: ["static_layer", "obstacle_layer", "inflation_layer"]
-      use_sim_time: true
+      use_sim_time: false
       static_layer:
         plugin: "nav2_costmap_2d::StaticLayer"
         enabled: True
@@ -209,15 +209,15 @@ map_saver:
     free_thresh_default: 0.25
     occupied_thresh_default: 0.65
     map_subscribe_transient_local: True
-    use_sim_time: true
+    use_sim_time: false
 
 planner_server:
   ros__parameters:
     expected_planner_frequency: 20.0
     planner_plugins: ["GridBased"]
     costmap_update_timeout: 1.0
-    enable_stamped_cmd_vel: true
-    use_sim_time: true
+    enable_stamped_cmd_vel: false
+    use_sim_time: false
     GridBased:
       plugin: "nav2_navfn_planner::NavfnPlanner"
       tolerance: 0.5
@@ -227,8 +227,8 @@ planner_server:
 smoother_server:
   ros__parameters:
     smoother_plugins: ["simple_smoother"]
-    enable_stamped_cmd_vel: true
-    use_sim_time: true
+    enable_stamped_cmd_vel: false
+    use_sim_time: false
     simple_smoother:
       plugin: "nav2_smoother::SimpleSmoother"
       tolerance: 1.0e-10
@@ -243,8 +243,8 @@ behavior_server:
     global_footprint_topic: global_costmap/published_footprint
     cycle_frequency: 10.0
     behavior_plugins: ["spin", "backup", "drive_on_heading", "assisted_teleop", "wait"]
-    enable_stamped_cmd_vel: true
-    use_sim_time: true
+    enable_stamped_cmd_vel: false
+    use_sim_time: false
     spin:
       plugin: "nav2_behaviors::Spin"
     backup:
@@ -269,7 +269,7 @@ waypoint_follower:
     loop_rate: 20
     stop_on_failure: false
     action_server_result_timeout: 900.0
-    use_sim_time: true
+    use_sim_time: false
     waypoint_task_executor_plugin: "wait_at_waypoint"
     wait_at_waypoint:
       plugin: "nav2_waypoint_follower::WaitAtWaypoint"
