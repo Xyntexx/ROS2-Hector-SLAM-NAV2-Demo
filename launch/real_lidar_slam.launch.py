@@ -38,12 +38,12 @@ def generate_launch_description():
         arguments=['0', '0', '0.18', '0', '0', '0', 'base_link', 'base_scan']
     )
 
-    # Static transform: base_footprint -> base_link
+    # Static transform: base_footprint -> base_link (wheel radius = 0.092m)
     footprint_to_base_tf = Node(
         package='tf2_ros',
         executable='static_transform_publisher',
         name='base_footprint_to_base_link',
-        arguments=['0', '0', '0', '0', '0', '0', 'base_footprint', 'base_link']
+        arguments=['0', '0', '0.092', '0', '0', '0', 'base_footprint', 'base_link']
     )
 
     # Hector SLAM node
