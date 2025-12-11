@@ -16,8 +16,8 @@ def generate_launch_description():
 
     baudrate_arg = DeclareLaunchArgument(
         'baudrate',
-        default_value='115200',
-        description='Serial baudrate'
+        default_value='460800',
+        description='Serial baudrate (460800 for Megarobo protocol)'
     )
 
     wheel_base_arg = DeclareLaunchArgument(
@@ -38,15 +38,21 @@ def generate_launch_description():
         description='Maximum motor RPM'
     )
 
+    max_speed_arg = DeclareLaunchArgument(
+        'max_speed',
+        default_value='16384',
+        description='Maximum motor speed value for protocol'
+    )
+
     protocol_arg = DeclareLaunchArgument(
         'protocol',
-        default_value='text',
-        description='Serial protocol: text or binary'
+        default_value='megarobo',
+        description='Serial protocol: text, binary, or megarobo'
     )
 
     # Differential drive controller node
     diff_drive_node = Node(
-        package='diff_drive_controller',
+        package='robot_motor_controller',
         executable='diff_drive_node.py',
         name='diff_drive_controller',
         output='screen',
@@ -56,6 +62,7 @@ def generate_launch_description():
             'wheel_base': LaunchConfiguration('wheel_base'),
             'wheel_radius': LaunchConfiguration('wheel_radius'),
             'max_rpm': LaunchConfiguration('max_rpm'),
+            'max_speed': LaunchConfiguration('max_speed'),
             'protocol': LaunchConfiguration('protocol'),
         }]
     )
@@ -66,6 +73,7 @@ def generate_launch_description():
         wheel_base_arg,
         wheel_radius_arg,
         max_rpm_arg,
+        max_speed_arg,
         protocol_arg,
         diff_drive_node,
     ])

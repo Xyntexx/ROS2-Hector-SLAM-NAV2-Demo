@@ -5,8 +5,10 @@ Differential Drive Controller Node
 Subscribes to /cmd_vel and sends motor commands via serial port.
 The serial protocol is configurable via parameters.
 
-Default protocol sends ASCII text: "L:<left_speed>,R:<right_speed>\n"
-where speeds are integers from -255 to 255.
+Supported protocols:
+- 'text': ASCII "L:<left_speed>,R:<right_speed>\n" (speeds -255 to 255)
+- 'binary': Simple binary protocol
+- 'megarobo': Megarobo UART protocol with XOR checksum
 """
 
 import rclpy
@@ -16,18 +18,58 @@ import serial
 import struct
 
 
+# =============================================================================
+# Megarobo Protocol Constants
+# =============================================================================
+# Can be imported from megarobo_protocol.py when shared module is created
+
+class MegaroboProtocol:
+    """Megarobo UART protocol for motor control."""
+
+    START_BYTE = 0xAA
+    PACKET_MOTOR_CONTROL = 0x11
+    STATUS_OK = 0x00
+
+    @staticmethod
+    def calculate_checksum(data: bytes) -> int:
+        """Calculate XOR checksum of all bytes."""
+        checksum = 0
+        for byte in data:
+            checksum ^= byte
+        return checksum
+
+    @staticmethod
+    def build_motor_packet(left: int, right: int) -> bytes:
+        """
+        Build motor control packet.
+
+        Args:
+            left: Left motor velocity (-32768 to 32767)
+            right: Right motor velocity (-32768 to 32767)
+
+        Returns:
+            Complete packet bytes ready to send
+        """
+        left = max(-32768, min(32767, left))
+        right = max(-32768, min(32767, right))
+        payload = struct.pack('<hh', left, right)
+        checksum_data = bytes([MegaroboProtocol.PACKET_MOTOR_CONTROL]) + payload
+        checksum = MegaroboProtocol.calculate_checksum(checksum_data)
+        return bytes([MegaroboProtocol.START_BYTE, MegaroboProtocol.PACKET_MOTOR_CONTROL]) + payload + bytes([checksum])
+
+
 class DiffDriveController(Node):
     def __init__(self):
         super().__init__('diff_drive_controller')
 
         # Declare parameters
         self.declare_parameter('port', '/tmp/motor')
-        self.declare_parameter('baudrate', 115200)
+        self.declare_parameter('baudrate', 460800)
         self.declare_parameter('wheel_base', 0.3)  # Distance between wheels (meters)
         self.declare_parameter('wheel_radius', 0.05)  # Wheel radius (meters)
         self.declare_parameter('max_rpm', 200)  # Maximum motor RPM
-        self.declare_parameter('max_pwm', 255)  # Maximum PWM value
-        self.declare_parameter('protocol', 'text')  # 'text' or 'binary'
+        self.declare_parameter('max_speed', 16384)  # Maximum motor speed value for protocol
+        self.declare_parameter('protocol', 'megarobo')  # 'text', 'binary', or 'megarobo'
         self.declare_parameter('invert_left', False)
         self.declare_parameter('invert_right', False)
         self.declare_parameter('cmd_timeout', 0.5)  # Stop if no cmd_vel received
@@ -38,7 +80,7 @@ class DiffDriveController(Node):
         self.wheel_base = self.get_parameter('wheel_base').value
         self.wheel_radius = self.get_parameter('wheel_radius').value
         self.max_rpm = self.get_parameter('max_rpm').value
-        self.max_pwm = self.get_parameter('max_pwm').value
+        self.max_speed = self.get_parameter('max_speed').value
         self.protocol = self.get_parameter('protocol').value
         self.invert_left = self.get_parameter('invert_left').value
         self.invert_right = self.get_parameter('invert_right').value
@@ -101,22 +143,22 @@ class DiffDriveController(Node):
         left_wheel_vel = left_vel / self.wheel_radius
         right_wheel_vel = right_vel / self.wheel_radius
 
-        # Scale to PWM (-max_pwm to +max_pwm)
-        left_pwm = int((left_wheel_vel / self.max_wheel_vel) * self.max_pwm)
-        right_pwm = int((right_wheel_vel / self.max_wheel_vel) * self.max_pwm)
+        # Scale to motor speed (-max_speed to +max_speed)
+        left_speed = int((left_wheel_vel / self.max_wheel_vel) * self.max_speed)
+        right_speed = int((right_wheel_vel / self.max_wheel_vel) * self.max_speed)
 
         # Clamp values
-        left_pwm = max(-self.max_pwm, min(self.max_pwm, left_pwm))
-        right_pwm = max(-self.max_pwm, min(self.max_pwm, right_pwm))
+        left_speed = max(-self.max_speed, min(self.max_speed, left_speed))
+        right_speed = max(-self.max_speed, min(self.max_speed, right_speed))
 
         # Apply inversion
         if self.invert_left:
-            left_pwm = -left_pwm
+            left_speed = -left_speed
         if self.invert_right:
-            right_pwm = -right_pwm
+            right_speed = -right_speed
 
         # Send command
-        self.send_motor_command(left_pwm, right_pwm)
+        self.send_motor_command(left_speed, right_speed)
 
     def send_motor_command(self, left: int, right: int):
         """Send motor command via serial"""
@@ -139,6 +181,15 @@ class DiffDriveController(Node):
                            right_bytes[0] + right_bytes[1]) & 0xFF
                 packet = bytes([0xAA]) + left_bytes + right_bytes + bytes([checksum])
                 self.serial.write(packet)
+            elif self.protocol == 'megarobo':
+                # Megarobo UART protocol with XOR checksum
+                packet = MegaroboProtocol.build_motor_packet(left, right)
+                self.serial.write(packet)
+                # Read ACK response (non-blocking)
+                if self.serial.in_waiting >= 4:
+                    response = self.serial.read(4)
+                    if len(response) == 4 and response[2] != MegaroboProtocol.STATUS_OK:
+                        self.get_logger().warn(f'Motor command returned status: 0x{response[2]:02X}')
             else:
                 self.get_logger().warn(f'Unknown protocol: {self.protocol}')
 

@@ -67,7 +67,7 @@ def generate_launch_description():
         output='screen'
     )
 
-    # Differential drive controller
+    # Differential drive controller (Megarobo protocol)
     diff_drive_node = Node(
         package='robot_motor_controller',
         executable='diff_drive_node.py',
@@ -75,12 +75,12 @@ def generate_launch_description():
         output='screen',
         parameters=[
             {'port': '/tmp/motor'},
-            {'baudrate': 115200},
+            {'baudrate': 460800},
             {'wheel_base': 0.3},  # Adjust to your robot
             {'wheel_radius': 0.05},  # Adjust to your robot
             {'max_rpm': 200},
-            {'max_pwm': 255},
-            {'protocol': 'text'},
+            {'max_speed': 16384},
+            {'protocol': 'megarobo'},
             {'invert_left': False},
             {'invert_right': False},
         ]
