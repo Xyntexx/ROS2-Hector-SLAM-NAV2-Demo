@@ -2,6 +2,8 @@
 """
 Simple MJPEG HTTP streaming server for webcam.
 View in browser at http://<ip>:8081
+
+Supports multiple simultaneous clients by sharing a single ffmpeg process.
 """
 
 import subprocess
@@ -9,6 +11,7 @@ import sys
 import argparse
 from http.server import HTTPServer, BaseHTTPRequestHandler
 import threading
+import time
 
 # Defaults (can be overridden via command line)
 PORT = 8081
@@ -17,94 +20,71 @@ WIDTH = 1280
 HEIGHT = 720
 FPS = 5
 
+# Shared frame buffer for all clients
+current_frame = None
+frame_lock = threading.Lock()
+clients = []
+clients_lock = threading.Lock()
+
+
+def ffmpeg_capture_thread():
+    """Single ffmpeg process that captures frames for all clients."""
+    global current_frame
+
+    cmd = [
+        "ffmpeg",
+        "-f", "v4l2",
+        "-input_format", "mjpeg",
+        "-video_size", f"{WIDTH}x{HEIGHT}",
+        "-framerate", str(FPS),
+        "-i", DEVICE,
+        "-c:v", "mjpeg",
+        "-q:v", "5",
+        "-f", "image2pipe",
+        "-vcodec", "mjpeg",
+        "-"
+    ]
+
+    while True:
+        try:
+            proc = subprocess.Popen(
+                cmd,
+                stdout=subprocess.PIPE,
+                stderr=subprocess.DEVNULL,
+                bufsize=10**6
+            )
+            print(f"[CAPTURE] Started ffmpeg (PID {proc.pid})")
+
+            buffer = b""
+            while True:
+                chunk = proc.stdout.read(4096)
+                if not chunk:
+                    break
+                buffer += chunk
+
+                # Find JPEG boundaries (FFD8 = start, FFD9 = end)
+                start = buffer.find(b'\xff\xd8')
+                end = buffer.find(b'\xff\xd9')
+
+                if start != -1 and end != -1 and end > start:
+                    jpg = buffer[start:end+2]
+                    buffer = buffer[end+2:]
+
+                    with frame_lock:
+                        current_frame = jpg
+
+        except Exception as e:
+            print(f"[CAPTURE] Error: {e}")
+        finally:
+            if proc:
+                proc.terminate()
+            print("[CAPTURE] Restarting in 1 second...")
+            time.sleep(1)
+
 
 class MJPEGHandler(BaseHTTPRequestHandler):
     def do_GET(self):
-        if self.path == "/" or self.path == "/stream":
-            self.send_response(200)
-            self.send_header("Content-Type", "multipart/x-mixed-replace; boundary=frame")
-            self.send_header("Cache-Control", "no-cache, no-store, must-revalidate")
-            self.send_header("Pragma", "no-cache")
-            self.send_header("Expires", "0")
-            self.end_headers()
-
-            # Use ffmpeg to capture MJPEG frames
-            cmd = [
-                "ffmpeg",
-                "-f", "v4l2",
-                "-input_format", "mjpeg",
-                "-video_size", f"{WIDTH}x{HEIGHT}",
-                "-framerate", str(FPS),
-                "-i", DEVICE,
-                "-c:v", "mjpeg",
-                "-q:v", "5",
-                "-f", "image2pipe",
-                "-vcodec", "mjpeg",
-                "-"
-            ]
-
-            try:
-                proc = subprocess.Popen(
-                    cmd,
-                    stdout=subprocess.PIPE,
-                    stderr=subprocess.DEVNULL,
-                    bufsize=10**6
-                )
-
-                # Read JPEG frames from ffmpeg
-                buffer = b""
-                while True:
-                    chunk = proc.stdout.read(4096)
-                    if not chunk:
-                        break
-                    buffer += chunk
-
-                    # Find JPEG boundaries (FFD8 = start, FFD9 = end)
-                    start = buffer.find(b'\xff\xd8')
-                    end = buffer.find(b'\xff\xd9')
-
-                    if start != -1 and end != -1 and end > start:
-                        jpg = buffer[start:end+2]
-                        buffer = buffer[end+2:]
-
-                        try:
-                            self.wfile.write(b"--frame\r\n")
-                            self.wfile.write(b"Content-Type: image/jpeg\r\n")
-                            self.wfile.write(f"Content-Length: {len(jpg)}\r\n\r\n".encode())
-                            self.wfile.write(jpg)
-                            self.wfile.write(b"\r\n")
-                        except (BrokenPipeError, ConnectionResetError):
-                            break
-
-            except Exception as e:
-                print(f"Stream error: {e}")
-            finally:
-                if proc:
-                    proc.terminate()
-
-        elif self.path == "/snapshot":
-            # Single JPEG snapshot
-            cmd = [
-                "ffmpeg",
-                "-f", "v4l2",
-                "-input_format", "mjpeg",
-                "-video_size", f"{WIDTH}x{HEIGHT}",
-                "-i", DEVICE,
-                "-frames:v", "1",
-                "-f", "image2",
-                "-"
-            ]
-            try:
-                result = subprocess.run(cmd, capture_output=True, timeout=5)
-                self.send_response(200)
-                self.send_header("Content-Type", "image/jpeg")
-                self.send_header("Content-Length", str(len(result.stdout)))
-                self.end_headers()
-                self.wfile.write(result.stdout)
-            except Exception as e:
-                self.send_error(500, str(e))
-
-        else:
+        if self.path == "/" or self.path == "/index.html":
             # HTML page with auto-reconnect
             html = """<!DOCTYPE html>
 <html>
@@ -159,6 +139,53 @@ connect();
             self.end_headers()
             self.wfile.write(html.encode())
 
+        elif self.path.startswith("/stream"):
+            self.send_response(200)
+            self.send_header("Content-Type", "multipart/x-mixed-replace; boundary=frame")
+            self.send_header("Cache-Control", "no-cache, no-store, must-revalidate")
+            self.send_header("Pragma", "no-cache")
+            self.send_header("Expires", "0")
+            self.end_headers()
+
+            last_frame = None
+            try:
+                while True:
+                    with frame_lock:
+                        frame = current_frame
+
+                    if frame and frame != last_frame:
+                        last_frame = frame
+                        try:
+                            self.wfile.write(b"--frame\r\n")
+                            self.wfile.write(b"Content-Type: image/jpeg\r\n")
+                            self.wfile.write(f"Content-Length: {len(frame)}\r\n\r\n".encode())
+                            self.wfile.write(frame)
+                            self.wfile.write(b"\r\n")
+                        except (BrokenPipeError, ConnectionResetError):
+                            break
+                    else:
+                        time.sleep(0.01)  # Small delay to avoid busy-waiting
+
+            except Exception as e:
+                print(f"[STREAM] Client error: {e}")
+
+        elif self.path == "/snapshot":
+            # Single JPEG snapshot from current frame
+            with frame_lock:
+                frame = current_frame
+
+            if frame:
+                self.send_response(200)
+                self.send_header("Content-Type", "image/jpeg")
+                self.send_header("Content-Length", str(len(frame)))
+                self.end_headers()
+                self.wfile.write(frame)
+            else:
+                self.send_error(503, "No frame available yet")
+
+        else:
+            self.send_error(404, "Not Found")
+
     def log_message(self, format, *args):
         print(f"[{self.address_string()}] {args[0]}")
 
@@ -199,6 +226,16 @@ if __name__ == "__main__":
     print(f"  View at: http://<this-ip>:{PORT}")
     print(f"  Stream URL: http://<this-ip>:{PORT}/stream")
     print(f"  Snapshot URL: http://<this-ip>:{PORT}/snapshot")
+
+    # Start capture thread
+    capture_thread = threading.Thread(target=ffmpeg_capture_thread, daemon=True)
+    capture_thread.start()
+
+    # Wait for first frame
+    print("Waiting for first frame...")
+    while current_frame is None:
+        time.sleep(0.1)
+    print("First frame received, starting server...")
 
     server = ThreadedHTTPServer(("0.0.0.0", PORT), MJPEGHandler)
     try:
