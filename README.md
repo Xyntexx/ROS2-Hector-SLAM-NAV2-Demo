@@ -551,6 +551,22 @@ ls */COLCON_IGNORE  # Should list 11 ignored packages
 
 ```
 hector_ws/
+├── robot/                                      # Scripts that run ON THE ROBOT (Raspberry Pi)
+│   ├── robot_bridge.py                         # Main bridge: lidar + motor TCP servers
+│   ├── webcam_stream.py                        # MJPEG HTTP webcam streaming
+│   ├── megarobo_protocol.py                    # Protocol library (standalone copy)
+│   └── start_webcam.sh                         # Webcam startup script
+├── windows/                                    # Scripts that run ON WINDOWS
+│   └── joy_bridge.py                           # Xbox controller -> TCP sender
+├── ros/                                        # Scripts that run IN ROS2 (WSL/Linux)
+│   ├── joy_tcp_bridge.py                       # TCP -> /joy topic publisher
+│   └── motor_bridge.py                         # /cmd_vel -> TCP motor commands
+├── shared/                                     # Shared libraries
+│   └── megarobo_protocol.py                    # Megarobo UART protocol
+├── scripts/                                    # Legacy scripts (deprecated)
+│   ├── serial_bridge.py                        # Old TCP<->Serial bridge
+│   ├── socat_bridge.sh                         # Old socat-based bridge
+│   └── megarobo_protocol.py                    # Protocol (use shared/ instead)
 ├── hector_slam_ros2/                           # Submodule: Hector SLAM ROS2
 │   ├── hector_mapping/                         # Core SLAM package (built)
 │   ├── hector_nav_msgs/                        # Message definitions (built)
@@ -562,12 +578,6 @@ hector_ws/
 │   │   └── CMakeLists.txt
 │   └── hector_slam_nav2_demo/                  # Demo package with bridge nodes
 │       └── scripts/joy_tcp_bridge.py           # TCP->ROS2 joy bridge (for WSL)
-├── scripts/
-│   ├── windows_joy_bridge.py                   # Windows Xbox controller TCP sender
-│   ├── joy_tcp_bridge.py                       # TCP receiver (standalone version)
-│   ├── serial_bridge.py                        # TCP<->Serial bridge (runs on Pi)
-│   ├── megarobo_protocol.py                    # Megarobo motor protocol library
-│   └── socat_bridge.sh                         # Auto-reconnecting TCP-to-serial bridge
 ├── launch/
 │   ├── turtlebot3_hector_nav2.launch.py       # Master launch file (simulation)
 │   ├── real_lidar_slam.launch.py              # Real hardware launch (LD19 + motors + NAV2)
@@ -592,19 +602,65 @@ hector_ws/
 
 ## Scripts Documentation
 
-### windows_joy_bridge.py
+### Robot Scripts (robot/)
 
-Runs on Windows to read Xbox controller input via pygame and send it to ROS2 over TCP.
+These scripts run **on the robot** (Raspberry Pi / Megarobo):
+
+#### robot_bridge.py
+
+Main robot bridge that exposes hardware over TCP. Replaces socat-based bridges with
+a smarter Python implementation that handles reconnection and protocol-level communication.
 
 ```bash
-# Usage
-python scripts/windows_joy_bridge.py [HOST] [PORT]
+# Auto-detect all devices
+python3 robot/robot_bridge.py --auto
 
-# Default: connects to localhost:9999
-python scripts/windows_joy_bridge.py
+# Manual port specification
+python3 robot/robot_bridge.py --lidar-port /dev/ttyUSB0 --motor-port /dev/ttyUSB1
+
+# With motor emulator (for testing)
+python3 robot/robot_bridge.py --lidar-port /dev/ttyUSB0 --motor-port emulate
+
+# List available ports
+python3 robot/robot_bridge.py --list
+```
+
+**Features:**
+- **Lidar bridge**: Raw serial passthrough (delay-sensitive)
+- **Motor bridge**: Protocol-aware command handling (not delay-sensitive)
+- Auto-reconnection for both serial and TCP
+- Multiple TCP client support for lidar
+- Proper Megarobo protocol parsing and ACK responses
+
+**TCP Ports:**
+- 8889: Lidar (raw serial passthrough)
+- 8890: Motor (protocol-aware)
+
+#### webcam_stream.py
+
+MJPEG HTTP streaming server for webcam. View in browser at `http://<robot-ip>:8081`.
+
+```bash
+python3 robot/webcam_stream.py --device /dev/video0 --port 8081
+```
+
+### Windows Scripts (windows/)
+
+These scripts run **on Windows**:
+
+#### joy_bridge.py
+
+Reads Xbox controller via pygame and sends to ROS2 over TCP.
+
+```bash
+# Install pygame (first time)
+pip install pygame
+
+# Connect to WSL (default)
+python windows/joy_bridge.py
 
 # Connect to specific IP
-python scripts/windows_joy_bridge.py 192.168.1.100 9999
+python windows/joy_bridge.py 192.168.1.100 9999
 ```
 
 **Features:**
@@ -613,45 +669,43 @@ python scripts/windows_joy_bridge.py 192.168.1.100 9999
 - Debug output shows button presses and axis movements
 - 50Hz update rate
 
-**Data Format:** 48 bytes per packet (8 floats for axes + 16 bytes for buttons)
+### ROS Scripts (ros/)
 
-### joy_tcp_bridge.py
+These scripts run **in ROS2** (WSL/Linux):
 
-ROS2 node that receives Xbox controller data from Windows and publishes as `/joy` topic.
+#### joy_tcp_bridge.py
 
-```bash
-# As ROS2 node (via launch file)
-ros2 launch launch/xbox_teleop_wsl.launch.py
-
-# Standalone
-python3 scripts/joy_tcp_bridge.py --port 9999
-```
-
-### serial_bridge.py
-
-Runs on Raspberry Pi (or any serial host) to bridge physical serial ports to TCP for remote access.
+ROS2 node that receives Xbox controller data and publishes `/joy`.
 
 ```bash
-# Auto-detect devices by VID/PID
-./scripts/serial_bridge.py --auto
+# As ROS2 node
+ros2 run hector_slam_nav2_demo joy_tcp_bridge
 
-# Manual port specification
-./scripts/serial_bridge.py --lidar-port /dev/ttyUSB0 --motor-port /dev/ttyUSB1
-
-# With motor emulator (no physical motor controller)
-./scripts/serial_bridge.py --lidar-port /dev/ttyUSB0 --motor-port emulate
-
-# List available ports
-./scripts/serial_bridge.py --list
+# Standalone (no ROS2)
+python3 ros/joy_tcp_bridge.py --port 9999
 ```
 
-**TCP Ports:**
-- 8889: Lidar serial bridge (230400 baud)
-- 8890: Motor serial bridge (460800 baud)
+#### motor_bridge.py
 
-### megarobo_protocol.py
+ROS2 node that subscribes to `/cmd_vel` and sends motor commands over TCP.
 
-Shared library implementing the Megarobo UART protocol for motor control.
+```bash
+# As ROS2 node
+ros2 run hector_slam_nav2_demo motor_bridge --ros-args -p host:=192.168.1.100
+
+# With parameters
+ros2 run hector_slam_nav2_demo motor_bridge --ros-args \
+    -p host:=192.168.1.100 \
+    -p port:=8890 \
+    -p wheel_base:=0.3 \
+    -p max_speed:=16384
+```
+
+### Shared Libraries (shared/)
+
+#### megarobo_protocol.py
+
+Megarobo UART protocol implementation. Used by robot_bridge.py and motor_bridge.py.
 
 **Packet Format:**
 ```
@@ -661,7 +715,7 @@ Response:      [0xAA] [0x11] [status_byte] [checksum]
 
 **Usage:**
 ```python
-from megarobo_protocol import MegaroboProtocol
+from shared.megarobo_protocol import MegaroboProtocol
 
 # Build motor command packet
 packet = MegaroboProtocol.build_motor_packet(left=1000, right=1000)
@@ -670,18 +724,12 @@ packet = MegaroboProtocol.build_motor_packet(left=1000, right=1000)
 pkt_type, status, is_valid = MegaroboProtocol.parse_response(response_bytes)
 ```
 
-### socat_bridge.sh
+### Legacy Scripts (scripts/) - Deprecated
 
-Creates virtual serial ports in WSL that connect to TCP serial bridges on the Raspberry Pi.
-
-```bash
-# Start the bridge (auto-reconnects)
-./scripts/socat_bridge.sh
-
-# Creates:
-#   /tmp/lidar -> TCP:PI_IP:8889
-#   /tmp/motor -> TCP:PI_IP:8890
-```
+The `scripts/` folder contains older implementations. Use the new organized folders instead:
+- `serial_bridge.py` -> Use `robot/robot_bridge.py`
+- `socat_bridge.sh` -> No longer needed (robot_bridge.py handles reconnection)
+- `megarobo_protocol.py` -> Use `shared/megarobo_protocol.py`
 
 ## Tips for Best Results
 
