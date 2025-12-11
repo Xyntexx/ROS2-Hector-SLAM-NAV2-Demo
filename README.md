@@ -167,6 +167,108 @@ ros2 launch launch/rviz.launch.py
 
 ## Architecture
 
+### System Flowcharts
+
+#### Simulation Mode
+```
++----------------+     /scan      +----------------+     /map      +----------+
+|    Gazebo      |--------------->|  Hector SLAM   |-------------->|   NAV2   |
+|   Simulator    |                |                |               |  Stack   |
+|                |     /tf        |   (mapping &   |    /tf        |          |
+|   (physics,    |--------------->|  localization) |-------------->|(planning,|
+|    lidar)      |                |                |               | control) |
++----------------+                +----------------+               +----+-----+
+       ^                                                                |
+       |                                                          /cmd_vel_nav
+       | /cmd_vel                                                       |
+       |                          +----------------+               +----v-----+
+       +--------------------------+   twist_mux    |<--------------| priority |
+                                  |                |               |    10    |
+                                  |  Multiplexer   |               +----------+
+                                  |                |
+                                  |  priority:     |               +----------+
+                                  |  teleop=100    |<--------------| /cmd_vel |
+                                  |  behavior=20   |  /cmd_vel     | _teleop  |
+                                  |  nav=10        |  _teleop      | priority |
+                                  +----------------+               |   100    |
+                                                                   +----+-----+
+                                                                        |
++----------------+     /joy       +----------------+              +-----+------+
+|   Xbox Ctrl    |--------------->| teleop_twist  |------------->|            |
+|  (Linux USB)   |                |     _joy      |   /cmd_vel   |            |
+|                |                |               |              |            |
+| /dev/input/js0 |                | (axis->twist) |              |            |
++----------------+                +----------------+              +------------+
+```
+
+#### Real Hardware Mode (WSL + Raspberry Pi)
+```
+ WINDOWS HOST                      |           WSL / LINUX
+-----------------------------------+----------------------------------------
+
++----------------+                 |
+|   Xbox Ctrl    |                 |
+|     (USB)      |                 |
++-------+--------+                 |
+        | pygame                   |
+        v                          |
++----------------+    TCP:9999     |      +----------------+
+| windows_joy    |-----------------|----->| joy_tcp_bridge |
+|  _bridge.py    |   (48 bytes)    |      |    (ROS2)      |
++----------------+                 |      +-------+--------+
+                                   |              | /joy
+                                   |              v
+                                   |      +----------------+
+                                   |      | teleop_twist   |
+                                   |      |     _joy       |
+                                   |      +-------+--------+
+                                   |              | /cmd_vel
+                                   |              v
+ RASPBERRY PI                      |      +----------------+     /cmd_vel
+-----------------                  |      |   twist_mux    |---------------+
+                                   |      +----------------+               |
++----------------+    TCP:8890     |                                       |
+| serial_bridge  |<----------------|---------------------------------------+
+|     .py        |                 |      +----------------+               |
++-------+--------+                 |      | diff_drive     |<--------------+
+        | serial                   |      |    _node       |
+        | 460800                   |      |                |
+        v                          |      | (Megarobo      |
++----------------+                 |      |  protocol)     |
+|    Motor       |                 |      +-------+--------+
+|  Controller    |                 |              |
+|   (Megarobo)   |                 |              | /tmp/motor (socat)
++----------------+                 |              v
+        |                          |      +----------------+
+        v                          |      |     socat      | TCP->serial
++----------------+                 |      |    bridge      |
+|    Motors      |                 |      +----------------+
+|   L/R wheels   |                 |
++----------------+                 |
+
++----------------+    TCP:8889     |      +----------------+
+| serial_bridge  |-----------------|----->|     socat      |
+|   (lidar)      |                 |      |   /tmp/lidar   |
++-------+--------+                 |      +-------+--------+
+        | serial                   |              |
+        | 230400                   |              v
+        v                          |      +----------------+
++----------------+                 |      |  LD19 lidar    |
+|   LD19 Lidar   |                 |      |    driver      |
+|                |                 |      +-------+--------+
++----------------+                 |              | /scan
+                                   |              v
+                                   |      +----------------+
+                                   |      |  Hector SLAM   |
+                                   |      +-------+--------+
+                                   |              | /map, /tf
+                                   |              v
+                                   |      +----------------+
+                                   |      |  NAV2 Stack    |
+                                   |      |    + RViz      |
+                                   |      +----------------+
+```
+
 ### Key Design Decisions
 
 **1. Odometry-Free Operation**
@@ -262,6 +364,47 @@ ros2 topic pub /goal_pose geometry_msgs/msg/PoseStamped '{
 **Note**: Hector SLAM provides both the map (`/map` topic) and localization (via TF transforms), so NAV2 doesn't need AMCL.
 
 ## Robot Control
+
+### Xbox Controller Teleop (Recommended)
+
+For manual control with an Xbox controller, there are two setups depending on your environment:
+
+#### Option A: Native Linux with USB Joystick
+
+```bash
+# Launch Xbox teleop (controller connected directly to Linux)
+ros2 launch launch/xbox_teleop.launch.py
+```
+
+#### Option B: WSL with Windows Xbox Controller
+
+Since WSL2 lacks kernel joystick support, use the TCP bridge:
+
+**1. On Windows (run in the .venv):**
+```bash
+# Install pygame (first time only)
+pip install pygame
+
+# Run the Windows joy bridge
+python scripts/windows_joy_bridge.py
+```
+
+**2. On WSL:**
+```bash
+# Launch Xbox teleop with TCP bridge
+ros2 launch launch/xbox_teleop_wsl.launch.py
+```
+
+#### Xbox Controller Mapping
+
+| Control | Action |
+|---------|--------|
+| Left Stick Y | Forward/Backward (linear.x) |
+| Right Stick X | Rotation (angular.z) |
+| A Button | Enable movement (hold) |
+| B Button | Turbo mode (hold) |
+
+**Note:** You must hold the A button (enable) while moving the sticks for the robot to move.
 
 ### Keyboard Teleop Controls
 - **W**: Move forward
@@ -413,18 +556,26 @@ hector_ws/
 │   ├── hector_nav_msgs/                        # Message definitions (built)
 │   └── */COLCON_IGNORE                         # Other packages ignored
 ├── src/
-│   └── robot_motor_controller/                 # Differential drive motor controller
-│       ├── scripts/diff_drive_node.py          # /cmd_vel to serial motor commands
-│       ├── package.xml
-│       └── CMakeLists.txt
+│   ├── robot_motor_controller/                 # Differential drive motor controller
+│   │   ├── scripts/diff_drive_node.py          # /cmd_vel to serial motor commands
+│   │   ├── package.xml
+│   │   └── CMakeLists.txt
+│   └── hector_slam_nav2_demo/                  # Demo package with bridge nodes
+│       └── scripts/joy_tcp_bridge.py           # TCP->ROS2 joy bridge (for WSL)
 ├── scripts/
-│   └── socat_bridge.sh                        # Auto-reconnecting TCP-to-serial bridge
+│   ├── windows_joy_bridge.py                   # Windows Xbox controller TCP sender
+│   ├── joy_tcp_bridge.py                       # TCP receiver (standalone version)
+│   ├── serial_bridge.py                        # TCP<->Serial bridge (runs on Pi)
+│   ├── megarobo_protocol.py                    # Megarobo motor protocol library
+│   └── socat_bridge.sh                         # Auto-reconnecting TCP-to-serial bridge
 ├── launch/
 │   ├── turtlebot3_hector_nav2.launch.py       # Master launch file (simulation)
 │   ├── real_lidar_slam.launch.py              # Real hardware launch (LD19 + motors + NAV2)
 │   ├── bot_simulation.launch.py               # Gazebo + robot_state_publisher
 │   ├── hector_slam.launch.py                  # Hector SLAM only
 │   ├── nav2_stack.launch.py                   # NAV2 + twist_mux
+│   ├── xbox_teleop.launch.py                  # Xbox teleop (native Linux joystick)
+│   ├── xbox_teleop_wsl.launch.py              # Xbox teleop (WSL with TCP bridge)
 │   └── rviz.launch.py                         # RViz only
 ├── config/
 │   ├── nav2_params.yaml                       # NAV2 configuration (map frame)
@@ -437,6 +588,99 @@ hector_ws/
 ├── params/
 │   └── turtlebot3_waffle_no_odom_tf_bridge.yaml  # Gazebo bridge config
 └── README.md                                  # This file
+```
+
+## Scripts Documentation
+
+### windows_joy_bridge.py
+
+Runs on Windows to read Xbox controller input via pygame and send it to ROS2 over TCP.
+
+```bash
+# Usage
+python scripts/windows_joy_bridge.py [HOST] [PORT]
+
+# Default: connects to localhost:9999
+python scripts/windows_joy_bridge.py
+
+# Connect to specific IP
+python scripts/windows_joy_bridge.py 192.168.1.100 9999
+```
+
+**Features:**
+- Auto-reconnects if connection is lost
+- Auto-reconnects if controller is disconnected/reconnected
+- Debug output shows button presses and axis movements
+- 50Hz update rate
+
+**Data Format:** 48 bytes per packet (8 floats for axes + 16 bytes for buttons)
+
+### joy_tcp_bridge.py
+
+ROS2 node that receives Xbox controller data from Windows and publishes as `/joy` topic.
+
+```bash
+# As ROS2 node (via launch file)
+ros2 launch launch/xbox_teleop_wsl.launch.py
+
+# Standalone
+python3 scripts/joy_tcp_bridge.py --port 9999
+```
+
+### serial_bridge.py
+
+Runs on Raspberry Pi (or any serial host) to bridge physical serial ports to TCP for remote access.
+
+```bash
+# Auto-detect devices by VID/PID
+./scripts/serial_bridge.py --auto
+
+# Manual port specification
+./scripts/serial_bridge.py --lidar-port /dev/ttyUSB0 --motor-port /dev/ttyUSB1
+
+# With motor emulator (no physical motor controller)
+./scripts/serial_bridge.py --lidar-port /dev/ttyUSB0 --motor-port emulate
+
+# List available ports
+./scripts/serial_bridge.py --list
+```
+
+**TCP Ports:**
+- 8889: Lidar serial bridge (230400 baud)
+- 8890: Motor serial bridge (460800 baud)
+
+### megarobo_protocol.py
+
+Shared library implementing the Megarobo UART protocol for motor control.
+
+**Packet Format:**
+```
+Motor Command: [0xAA] [0x11] [left_speed_int16] [right_speed_int16] [checksum_XOR]
+Response:      [0xAA] [0x11] [status_byte] [checksum]
+```
+
+**Usage:**
+```python
+from megarobo_protocol import MegaroboProtocol
+
+# Build motor command packet
+packet = MegaroboProtocol.build_motor_packet(left=1000, right=1000)
+
+# Parse response
+pkt_type, status, is_valid = MegaroboProtocol.parse_response(response_bytes)
+```
+
+### socat_bridge.sh
+
+Creates virtual serial ports in WSL that connect to TCP serial bridges on the Raspberry Pi.
+
+```bash
+# Start the bridge (auto-reconnects)
+./scripts/socat_bridge.sh
+
+# Creates:
+#   /tmp/lidar -> TCP:PI_IP:8889
+#   /tmp/motor -> TCP:PI_IP:8890
 ```
 
 ## Tips for Best Results
