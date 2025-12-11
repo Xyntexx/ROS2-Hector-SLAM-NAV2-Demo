@@ -12,6 +12,20 @@ from ament_index_python.packages import get_package_share_directory
 def generate_launch_description():
     workspace_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
     nav2_params_file = os.path.join(workspace_dir, 'config', 'nav2_params.yaml')
+    urdf_file = os.path.join(workspace_dir, 'urdf', 'robot.urdf')
+
+    # Read URDF file
+    with open(urdf_file, 'r') as f:
+        robot_description = f.read()
+
+    # Robot State Publisher
+    robot_state_publisher = Node(
+        package='robot_state_publisher',
+        executable='robot_state_publisher',
+        name='robot_state_publisher',
+        output='screen',
+        parameters=[{'robot_description': robot_description}]
+    )
 
     # LD19 Lidar TCP Bridge - connects to robot_bridge.py over TCP
     # No socat needed - direct TCP connection to robot
@@ -148,6 +162,7 @@ def generate_launch_description():
         SetEnvironmentVariable('ROS_LOCALHOST_ONLY', '1'),
 
         # Core nodes
+        robot_state_publisher,
         lidar_tcp_bridge_node,
         base_to_scan_tf,
         footprint_to_base_tf,
