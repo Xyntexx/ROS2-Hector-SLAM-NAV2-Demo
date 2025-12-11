@@ -19,6 +19,7 @@ DEVICE = "/dev/video0"
 WIDTH = 640
 HEIGHT = 480
 FPS = 15
+ROTATE = 0  # Rotation in degrees (0, 90, 180, 270)
 
 # Shared frame buffer for all clients
 current_frame = None
@@ -31,6 +32,7 @@ def ffmpeg_capture_thread():
     """Single ffmpeg process that captures frames for all clients."""
     global current_frame
 
+    # Build ffmpeg command with optional rotation
     cmd = [
         "ffmpeg",
         "-f", "v4l2",
@@ -38,12 +40,23 @@ def ffmpeg_capture_thread():
         "-video_size", f"{WIDTH}x{HEIGHT}",
         "-framerate", str(FPS),
         "-i", DEVICE,
+    ]
+
+    # Add rotation filter if needed
+    if ROTATE == 90:
+        cmd.extend(["-vf", "transpose=1"])
+    elif ROTATE == 180:
+        cmd.extend(["-vf", "transpose=1,transpose=1"])
+    elif ROTATE == 270:
+        cmd.extend(["-vf", "transpose=2"])
+
+    cmd.extend([
         "-c:v", "mjpeg",
         "-q:v", "5",
         "-f", "image2pipe",
         "-vcodec", "mjpeg",
         "-"
-    ]
+    ])
 
     while True:
         try:
@@ -212,6 +225,7 @@ if __name__ == "__main__":
     parser.add_argument('--width', type=int, default=WIDTH, help=f'Video width (default: {WIDTH})')
     parser.add_argument('--height', type=int, default=HEIGHT, help=f'Video height (default: {HEIGHT})')
     parser.add_argument('--fps', type=int, default=FPS, help=f'Frames per second (default: {FPS})')
+    parser.add_argument('--rotate', type=int, default=ROTATE, choices=[0, 90, 180, 270], help=f'Rotation in degrees (default: {ROTATE})')
     args = parser.parse_args()
 
     # Update globals from args
@@ -220,9 +234,10 @@ if __name__ == "__main__":
     WIDTH = args.width
     HEIGHT = args.height
     FPS = args.fps
+    ROTATE = args.rotate
 
     print(f"Starting webcam stream server")
-    print(f"  Device: {DEVICE} @ {WIDTH}x{HEIGHT} {FPS}fps")
+    print(f"  Device: {DEVICE} @ {WIDTH}x{HEIGHT} {FPS}fps, rotate={ROTATE}")
     print(f"  View at: http://<this-ip>:{PORT}")
     print(f"  Stream URL: http://<this-ip>:{PORT}/stream")
     print(f"  Snapshot URL: http://<this-ip>:{PORT}/snapshot")
