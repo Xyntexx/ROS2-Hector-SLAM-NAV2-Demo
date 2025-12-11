@@ -88,7 +88,11 @@ controller_server:
       PreferForwardCritic:
         enabled: true
         cost_power: 1
+<<<<<<< HEAD
         cost_weight: 20.0
+=======
+        cost_weight: 10.0
+>>>>>>> 42c2c2c (Tune Nav2 and motor control for 2 km/h robot)
         threshold_to_consider: 0.3
       CostCritic:
         enabled: true
@@ -139,7 +143,11 @@ local_costmap:
       width: 3
       height: 3
       resolution: 0.05
+<<<<<<< HEAD
       footprint: "[[0.28, 0.20], [0.28, -0.20], [-0.28, -0.20], [-0.28, 0.20]]"
+=======
+      robot_radius: 0.35
+>>>>>>> 42c2c2c (Tune Nav2 and motor control for 2 km/h robot)
       plugins: ["voxel_layer", "inflation_layer"]
       use_sim_time: false
       inflation_layer:
@@ -175,7 +183,11 @@ global_costmap:
       publish_frequency: 2.0
       global_frame: map
       robot_base_frame: base_link
+<<<<<<< HEAD
       footprint: "[[0.28, 0.20], [0.28, -0.20], [-0.28, -0.20], [-0.28, 0.20]]"
+=======
+      robot_radius: 0.35
+>>>>>>> 42c2c2c (Tune Nav2 and motor control for 2 km/h robot)
       resolution: 0.05
       track_unknown_space: true
       rolling_window: false        # Use static map from Hector SLAM
