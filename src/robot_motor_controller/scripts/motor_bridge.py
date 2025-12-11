@@ -17,7 +17,7 @@ Usage:
         -p host:=192.168.1.100 \
         -p port:=8890 \
         -p wheel_base:=0.3 \
-        -p max_speed:=16384
+        -p max_speed:=16383
 """
 
 import os
@@ -51,7 +51,7 @@ class MotorBridgeClient:
     """TCP client that sends motor commands to robot_bridge."""
 
     def __init__(self, host='localhost', port=8890, wheel_base=0.3,
-                 wheel_radius=0.05, max_speed=16384, ros_node=None):
+                 wheel_radius=0.05, max_speed=16383, ros_node=None):
         self.host = host
         self.port = port
         self.wheel_base = wheel_base
@@ -88,24 +88,24 @@ class MotorBridgeClient:
             linear_x: Linear velocity in m/s
             angular_z: Angular velocity in rad/s
         """
-        # Differential drive kinematics
+        # Differential drive kinematics: convert to wheel linear velocities
         left_vel = linear_x - (angular_z * self.wheel_base / 2.0)
         right_vel = linear_x + (angular_z * self.wheel_base / 2.0)
 
-        # Convert to wheel angular velocity (rad/s)
-        left_wheel_vel = left_vel / self.wheel_radius
-        right_wheel_vel = right_vel / self.wheel_radius
-
-        # Calculate max wheel velocity for scaling
-        max_wheel_vel = 2.0 / self.wheel_radius  # Assuming 2 m/s max linear
-
         # Scale to motor speed units
-        left_speed = int((left_wheel_vel / max_wheel_vel) * self.max_speed)
-        right_speed = int((right_wheel_vel / max_wheel_vel) * self.max_speed)
+        # Motor max (16383) = 2 km/h = 0.556 m/s linear
+        # So: motor_value = (linear_vel / 0.556) * 16383
+        max_linear_vel = 2.0 / 3.6  # 2 km/h = 0.556 m/s
+        left_speed = int((left_vel / max_linear_vel) * self.max_speed)
+        right_speed = int((right_vel / max_linear_vel) * self.max_speed)
 
         # Clamp
         left_speed = max(-self.max_speed, min(self.max_speed, left_speed))
         right_speed = max(-self.max_speed, min(self.max_speed, right_speed))
+
+        # Log commanded velocity vs motor values
+        linear_kmh = linear_x * 3.6
+        self._log(f"cmd: {linear_x:.2f} m/s ({linear_kmh:.1f} km/h), w={angular_z:.2f} rad/s -> L={left_speed} R={right_speed}")
 
         self._send_motor_command(left_speed, right_speed)
         self.last_cmd_time = time.time()
@@ -143,6 +143,7 @@ class MotorBridgeClient:
         """Background thread that maintains connection."""
         while self.running:
             if not self.connected:
+                self._log(f"Reconnecting to {self.host}:{self.port}...")
                 self._connect()
             time.sleep(1)
 
@@ -172,6 +173,10 @@ class MotorBridgeClient:
 
         except Exception as e:
             self._log(f"Connection failed: {e}")
+            try:
+                sock.close()
+            except:
+                pass
             self.connected = False
 
     def _disconnect(self):
@@ -204,7 +209,7 @@ class MotorBridgeNode(Node):
         self.declare_parameter('port', 8890)
         self.declare_parameter('wheel_base', 0.3)
         self.declare_parameter('wheel_radius', 0.05)
-        self.declare_parameter('max_speed', 16384)
+        self.declare_parameter('max_speed', 16383)
 
         # Get parameters
         host = self.get_parameter('host').value

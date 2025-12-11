@@ -94,7 +94,7 @@ def generate_launch_description():
 
     # Joy TCP bridge - receives Xbox controller input from Windows
     joy_tcp_bridge_node = Node(
-        package='hector_slam_nav2_demo',
+        package='robot_motor_controller',
         executable='joy_tcp_bridge.py',
         name='joy_tcp_bridge',
         output='screen',

@@ -146,10 +146,14 @@ class LidarTcpBridge:
             try:
                 data = self.sock.recv(1024)
                 if not data:
+                    self._log("Connection closed by remote")
                     break
                 buffer.extend(data)
             except socket.timeout:
                 continue
+            except (ConnectionResetError, BrokenPipeError, OSError) as e:
+                self._log(f"Connection error: {e}")
+                break
 
             # Process complete packets
             while len(buffer) >= LD19_PACKET_SIZE:
@@ -184,7 +188,10 @@ class LidarTcpBridge:
                 # Parse packet
                 self._parse_packet(packet)
 
-        self.sock.close()
+        try:
+            self.sock.close()
+        except:
+            pass
         self._log("Disconnected")
 
     def _parse_packet(self, packet):
@@ -213,6 +220,10 @@ class LidarTcpBridge:
             intensity = packet[offset + 2]
 
             angle = (start_angle + i * angle_step) % 360.0
+
+            # Filter out low intensity readings (unreliable)
+            if intensity < 100:
+                continue
 
             # Store in scan data (convert to meters)
             angle_key = round(angle, 1)  # 0.1 degree resolution
