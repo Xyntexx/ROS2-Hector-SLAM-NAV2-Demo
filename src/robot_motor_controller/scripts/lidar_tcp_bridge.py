@@ -264,7 +264,7 @@ class LidarTcpBridge:
             intensities = []
 
             for i in range(num_readings):
-                angle_deg = float(i)
+                angle_deg = float(359 - i)  # Mirror scan (flip left-right)
 
                 # Find closest measurement
                 best_dist = float('inf')
