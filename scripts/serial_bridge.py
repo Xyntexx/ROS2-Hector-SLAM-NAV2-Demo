@@ -7,6 +7,9 @@ and exposes them over TCP for remote ROS2 machines.
 Usage on Raspberry Pi:
     ./serial_bridge.py --lidar-port /dev/ttyUSB0 --motor-port /dev/ttyUSB1
 
+Usage with auto-detection:
+    ./serial_bridge.py --auto
+
 Usage on Windows:
     python serial_bridge.py --lidar-port COM3 --motor-port COM6
 
@@ -26,6 +29,43 @@ import argparse
 # Add scripts directory to path for imports
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 from megarobo_protocol import MegaroboProtocol
+
+# Known device VID/PID pairs
+KNOWN_DEVICES = {
+    'lidar': {
+        'vid': 0x10c4,  # Silicon Labs
+        'pid': 0xea60,  # CP2102 (LD19 lidar)
+        'name': 'LD19 Lidar (CP2102)',
+    },
+    'motor': {
+        'vid': 0x0403,  # FTDI
+        'pid': 0x6001,  # FT232R
+        'name': 'Motor Controller (FTDI)',
+    },
+}
+
+
+def find_device_by_vid_pid(vid, pid):
+    """Find a serial port by VID/PID."""
+    ports = serial.tools.list_ports.comports()
+    for port in ports:
+        if port.vid == vid and port.pid == pid:
+            return port.device
+    return None
+
+
+def auto_detect_devices():
+    """Auto-detect lidar and motor devices by VID/PID."""
+    detected = {}
+    for device_type, info in KNOWN_DEVICES.items():
+        port = find_device_by_vid_pid(info['vid'], info['pid'])
+        if port:
+            detected[device_type] = port
+            print(f"Auto-detected {info['name']}: {port}")
+        else:
+            print(f"Not found: {info['name']} (VID={info['vid']:04x}, PID={info['pid']:04x})")
+    return detected
+
 
 def list_serial_ports():
     """List available serial ports"""
@@ -226,10 +266,11 @@ def emulate_motor_controller(tcp_port, name):
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser(description='Serial-to-TCP Bridge for ROS2 robots')
-    parser.add_argument('--lidar-port', type=str, default=None, help='Serial port for lidar (e.g., /dev/ttyUSB0 or COM3)')
+    parser.add_argument('--auto', action='store_true', help='Auto-detect devices by VID/PID')
+    parser.add_argument('--lidar-port', type=str, default=None, help='Serial port for lidar (e.g., /dev/ttyUSB0 or COM3), or "auto" to auto-detect')
     parser.add_argument('--lidar-baud', type=int, default=230400, help='Lidar baud rate (default: 230400)')
     parser.add_argument('--lidar-tcp', type=int, default=8889, help='TCP port for lidar (default: 8889)')
-    parser.add_argument('--motor-port', type=str, default=None, help='Serial port for motor (e.g., /dev/ttyUSB1 or COM6), or "emulate" to emulate')
+    parser.add_argument('--motor-port', type=str, default=None, help='Serial port for motor (e.g., /dev/ttyUSB1 or COM6), "auto" to auto-detect, or "emulate" to emulate')
     parser.add_argument('--motor-baud', type=int, default=460800, help='Motor baud rate (default: 460800)')
     parser.add_argument('--motor-tcp', type=int, default=8890, help='TCP port for motor (default: 8890)')
     parser.add_argument('--list', action='store_true', help='List available serial ports and exit')
@@ -244,23 +285,51 @@ if __name__ == '__main__':
     # Show available ports
     available_ports = list_serial_ports()
 
+    # Handle --auto flag (sets both to auto-detect)
+    if args.auto:
+        if args.lidar_port is None:
+            args.lidar_port = 'auto'
+        if args.motor_port is None:
+            args.motor_port = 'auto'
+
+    # Auto-detect devices if requested
+    detected = {}
+    if args.lidar_port == 'auto' or args.motor_port == 'auto':
+        print("Auto-detecting devices...")
+        detected = auto_detect_devices()
+        print()
+
+    # Resolve auto-detected ports
+    lidar_port = args.lidar_port
+    motor_port = args.motor_port
+
+    if lidar_port == 'auto':
+        lidar_port = detected.get('lidar')
+        if not lidar_port:
+            print("LIDAR: Auto-detection failed (device not found)")
+
+    if motor_port == 'auto':
+        motor_port = detected.get('motor')
+        if not motor_port:
+            print("MOTOR: Auto-detection failed (device not found, use --motor-port emulate for emulator)")
+
     threads = []
 
     # Lidar bridge
-    if args.lidar_port:
-        print(f"Starting LIDAR bridge: {args.lidar_port} -> TCP:{args.lidar_tcp}")
+    if lidar_port and lidar_port != 'auto':
+        print(f"Starting LIDAR bridge: {lidar_port} -> TCP:{args.lidar_tcp}")
         lidar_thread = threading.Thread(
             target=bridge_serial_to_tcp,
-            args=(args.lidar_port, args.lidar_baud, args.lidar_tcp, 'LIDAR'),
+            args=(lidar_port, args.lidar_baud, args.lidar_tcp, 'LIDAR'),
             daemon=True
         )
         threads.append(lidar_thread)
-    else:
-        print("LIDAR: Not configured (use --lidar-port)")
+    elif not args.lidar_port:
+        print("LIDAR: Not configured (use --lidar-port or --auto)")
 
     # Motor bridge or emulator
-    if args.motor_port:
-        if args.motor_port.lower() == 'emulate':
+    if motor_port and motor_port != 'auto':
+        if motor_port.lower() == 'emulate':
             print(f"Starting MOTOR emulator on TCP:{args.motor_tcp}")
             motor_thread = threading.Thread(
                 target=emulate_motor_controller,
@@ -268,15 +337,15 @@ if __name__ == '__main__':
                 daemon=True
             )
         else:
-            print(f"Starting MOTOR bridge: {args.motor_port} -> TCP:{args.motor_tcp}")
+            print(f"Starting MOTOR bridge: {motor_port} -> TCP:{args.motor_tcp}")
             motor_thread = threading.Thread(
                 target=bridge_serial_to_tcp,
-                args=(args.motor_port, args.motor_baud, args.motor_tcp, 'MOTOR'),
+                args=(motor_port, args.motor_baud, args.motor_tcp, 'MOTOR'),
                 daemon=True
             )
         threads.append(motor_thread)
-    else:
-        print("MOTOR: Not configured (use --motor-port or --motor-port emulate)")
+    elif not args.motor_port:
+        print("MOTOR: Not configured (use --motor-port, --auto, or --motor-port emulate)")
 
     print()
 
