@@ -11,51 +11,23 @@ Supported protocols:
 - 'megarobo': Megarobo UART protocol with XOR checksum
 """
 
+import os
+import sys
 import rclpy
 from rclpy.node import Node
 from geometry_msgs.msg import Twist
 import serial
 import struct
 
-
-# =============================================================================
-# Megarobo Protocol Constants
-# =============================================================================
-# Can be imported from megarobo_protocol.py when shared module is created
-
-class MegaroboProtocol:
-    """Megarobo UART protocol for motor control."""
-
-    START_BYTE = 0xAA
-    PACKET_MOTOR_CONTROL = 0x11
-    STATUS_OK = 0x00
-
-    @staticmethod
-    def calculate_checksum(data: bytes) -> int:
-        """Calculate XOR checksum of all bytes."""
-        checksum = 0
-        for byte in data:
-            checksum ^= byte
-        return checksum
-
-    @staticmethod
-    def build_motor_packet(left: int, right: int) -> bytes:
-        """
-        Build motor control packet.
-
-        Args:
-            left: Left motor velocity (-32768 to 32767)
-            right: Right motor velocity (-32768 to 32767)
-
-        Returns:
-            Complete packet bytes ready to send
-        """
-        left = max(-32768, min(32767, left))
-        right = max(-32768, min(32767, right))
-        payload = struct.pack('<hh', left, right)
-        checksum_data = bytes([MegaroboProtocol.PACKET_MOTOR_CONTROL]) + payload
-        checksum = MegaroboProtocol.calculate_checksum(checksum_data)
-        return bytes([MegaroboProtocol.START_BYTE, MegaroboProtocol.PACKET_MOTOR_CONTROL]) + payload + bytes([checksum])
+# Import shared protocol module
+# Try relative import first (for ROS2 package), then absolute path (for standalone)
+try:
+    from megarobo_protocol import MegaroboProtocol
+except ImportError:
+    # Add scripts directory to path
+    scripts_dir = os.path.join(os.path.dirname(__file__), '..', '..', '..', 'scripts')
+    sys.path.insert(0, os.path.abspath(scripts_dir))
+    from megarobo_protocol import MegaroboProtocol
 
 
 class DiffDriveController(Node):
