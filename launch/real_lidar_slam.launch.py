@@ -13,20 +13,18 @@ def generate_launch_description():
     workspace_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
     nav2_params_file = os.path.join(workspace_dir, 'config', 'nav2_params.yaml')
 
-    # LD19 Lidar node
-    ldlidar_node = Node(
-        package='ldlidar_stl_ros2',
-        executable='ldlidar_stl_ros2_node',
-        name='LD19',
+    # LD19 Lidar TCP Bridge - connects to robot_bridge.py over TCP
+    # No socat needed - direct TCP connection to robot
+    # Parses LD19 protocol and publishes LaserScan
+    lidar_tcp_bridge_node = Node(
+        package='robot_motor_controller',
+        executable='lidar_tcp_bridge.py',
+        name='lidar_tcp_bridge',
         output='screen',
         parameters=[
-            {'product_name': 'LDLiDAR_LD19'},
-            {'topic_name': 'scan'},
+            {'host': '192.168.60.215'},  # Robot IP address
+            {'port': 8889},              # Lidar TCP port on robot_bridge.py
             {'frame_id': 'base_scan'},
-            {'port_name': '/tmp/lidar'},
-            {'port_baudrate': 230400},
-            {'laser_scan_dir': True},
-            {'enable_angle_crop_func': False},
         ]
     )
 
@@ -67,22 +65,19 @@ def generate_launch_description():
         output='screen'
     )
 
-    # Differential drive controller (Megarobo protocol)
-    diff_drive_node = Node(
+    # Motor bridge - connects to robot_bridge.py over TCP
+    # No socat needed - direct TCP connection to robot
+    motor_bridge_node = Node(
         package='robot_motor_controller',
-        executable='diff_drive_node.py',
-        name='diff_drive_controller',
+        executable='motor_bridge.py',
+        name='motor_bridge',
         output='screen',
         parameters=[
-            {'port': '/tmp/motor'},
-            {'baudrate': 460800},
-            {'wheel_base': 0.3},  # Adjust to your robot
-            {'wheel_radius': 0.05},  # Adjust to your robot
-            {'max_rpm': 200},
+            {'host': '192.168.60.215'},  # Robot IP address
+            {'port': 8890},              # Motor TCP port on robot_bridge.py
+            {'wheel_base': 0.3},         # Adjust to your robot
+            {'wheel_radius': 0.05},      # Adjust to your robot
             {'max_speed': 16384},
-            {'protocol': 'megarobo'},
-            {'invert_left': False},
-            {'invert_right': False},
         ]
     )
 
@@ -153,11 +148,11 @@ def generate_launch_description():
         SetEnvironmentVariable('ROS_LOCALHOST_ONLY', '1'),
 
         # Core nodes
-        ldlidar_node,
+        lidar_tcp_bridge_node,
         base_to_scan_tf,
         footprint_to_base_tf,
         hector_slam_node,
-        diff_drive_node,
+        motor_bridge_node,
 
         # NAV2 nodes
         controller_server,
