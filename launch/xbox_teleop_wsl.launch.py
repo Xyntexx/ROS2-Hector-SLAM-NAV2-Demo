@@ -104,9 +104,9 @@ def generate_launch_description():
     )
 
     # Teleop twist joy - converts joystick to cmd_vel
-    # Xbox controller mapping:
+    # Xbox controller mapping (LEFT STICK ONLY):
     #   Left stick Y (axis 1): linear.x (forward/backward)
-    #   Right stick X (axis 3): angular.z (rotation) - may be axis 2 depending on driver
+    #   Left stick X (axis 0): angular.z (rotation)
     #   A button (button 0): enable
     #   B button (button 1): enable turbo
     teleop_twist_joy_node = Node(
@@ -115,13 +115,13 @@ def generate_launch_description():
         name='teleop_twist_joy',
         output='screen',
         parameters=[{
-            # Axis mapping for Xbox controller via pygame
-            'axis_linear.x': 1,      # Left stick Y
-            'axis_angular.yaw': 2,   # Right stick X (pygame uses 2, not 3)
-            'scale_linear.x': LaunchConfiguration('linear_speed'),
-            'scale_angular.yaw': LaunchConfiguration('angular_speed'),
-            'scale_linear_turbo.x': 1.0,
-            'scale_angular_turbo.yaw': 2.0,
+            # Axis mapping - LEFT STICK ONLY (inverted)
+            'axis_linear.x': 1,      # Left stick Y (forward/back)
+            'axis_angular.yaw': 0,   # Left stick X (turn left/right)
+            'scale_linear.x': -0.5,  # Inverted
+            'scale_angular.yaw': -1.0,  # Inverted
+            'scale_linear_turbo.x': -1.0,
+            'scale_angular_turbo.yaw': -2.0,
             'enable_button': 0,      # A button
             'enable_turbo_button': 1, # B button
             'require_enable_button': True,
@@ -155,7 +155,7 @@ def generate_launch_description():
     # Info message
     info_msg = LogInfo(
         msg=['WSL Xbox Teleop: Run "python windows_joy_bridge.py" on Windows. ',
-             'Hold A to drive, B for turbo. Left stick = forward/back, Right stick = rotate.']
+             'Hold A to drive, B for turbo. Left stick only: Y=forward/back, X=rotate.']
     )
 
     return LaunchDescription([

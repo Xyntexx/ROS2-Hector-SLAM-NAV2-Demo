@@ -66,6 +66,13 @@ class MotorBridgeClient:
         self.last_cmd_time = 0
         self.cmd_timeout = 0.5  # Stop if no command for 500ms
 
+        # Velocity smoothing (exponential moving average)
+        # Lower alpha = smoother, higher = more responsive
+        self.smooth_alpha_linear = 0.10   # Very smooth for linear (reduce jitter)
+        self.smooth_alpha_angular = 0.25  # Responsive but smooth turns
+        self.smooth_linear = 0.0
+        self.smooth_angular = 0.0
+
         # Start connection thread
         self.running = True
         self.connect_thread = threading.Thread(target=self._connection_loop, daemon=True)
@@ -88,9 +95,21 @@ class MotorBridgeClient:
             linear_x: Linear velocity in m/s
             angular_z: Angular velocity in rad/s
         """
+        # Apply exponential moving average smoothing (separate alphas)
+        self.smooth_linear = self.smooth_alpha_linear * linear_x + (1 - self.smooth_alpha_linear) * self.smooth_linear
+        self.smooth_angular = self.smooth_alpha_angular * angular_z + (1 - self.smooth_alpha_angular) * self.smooth_angular
+
+        # Use smoothed values
+        linear_x = self.smooth_linear
+        angular_z = self.smooth_angular
+
         # Differential drive kinematics: convert to wheel linear velocities
-        left_vel = linear_x - (angular_z * self.wheel_base / 2.0)
-        right_vel = linear_x + (angular_z * self.wheel_base / 2.0)
+        # Linear scaling: measured 110% after first correction, so reduce to 1.05
+        # Angular scaling: measured 46% of commanded, so multiply by ~2.17
+        linear_scale = 1.05
+        angular_scale = 2.17
+        left_vel = (linear_x * linear_scale) - (angular_z * self.wheel_base / 2.0 * angular_scale)
+        right_vel = (linear_x * linear_scale) + (angular_z * self.wheel_base / 2.0 * angular_scale)
 
         # Scale to motor speed units
         # Motor max (16383) = 2 km/h = 0.556 m/s linear

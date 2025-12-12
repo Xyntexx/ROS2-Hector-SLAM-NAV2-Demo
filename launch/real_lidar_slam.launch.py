@@ -38,7 +38,7 @@ def generate_launch_description():
         parameters=[
             {'host': '192.168.60.215'},  # Robot IP address
             {'port': 8889},              # Lidar TCP port on robot_bridge.py
-            {'frame_id': 'base_scan'},
+            {'frame_id': 'lidar_link'},
         ]
     )
 
@@ -65,12 +65,12 @@ def generate_launch_description():
         name='hector_slam',
         parameters=[
             {'use_sim_time': False},
-            {'base_frame': 'base_footprint'},
-            {'odom_frame': 'base_footprint'},
+            {'base_frame': 'base_link'},
+            {'odom_frame': 'base_link'},
             {'map_frame': 'map'},
             {'scan_topic': '/scan'},
             {'pub_map_odom_transform': True},
-            {'use_tf_scan_transformation': False},
+            {'use_tf_scan_transformation': True},
             {'map_resolution': 0.05},
             {'map_size': 2048},
             {'map_update_distance_threshold': 0.2},
@@ -122,6 +122,15 @@ def generate_launch_description():
         parameters=[nav2_params_file],
     )
 
+    # NAV2 Smoother Server
+    smoother_server = Node(
+        package='nav2_smoother',
+        executable='smoother_server',
+        name='smoother_server',
+        output='screen',
+        parameters=[nav2_params_file],
+    )
+
     # NAV2 BT Navigator
     bt_navigator = Node(
         package='nav2_bt_navigator',
@@ -141,6 +150,7 @@ def generate_launch_description():
             'autostart': True,
             'node_names': [
                 'controller_server',
+                'smoother_server',
                 'planner_server',
                 'behavior_server',
                 'bt_navigator',
@@ -171,6 +181,7 @@ def generate_launch_description():
 
         # NAV2 nodes
         controller_server,
+        smoother_server,
         planner_server,
         behavior_server,
         bt_navigator,
