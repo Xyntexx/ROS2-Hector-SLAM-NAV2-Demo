@@ -106,7 +106,7 @@ ros2 launch launch/robot.launch.py nav2:=false
 **Connect from remote machine** (for RViz, teleop):
 ```bash
 export RMW_IMPLEMENTATION=rmw_zenoh_cpp
-export ZENOH_CONFIG_OVERRIDE='mode="client";connect/endpoints=["tcp/192.168.60.218:7447"]'
+export ZENOH_CONFIG_OVERRIDE='mode="client";connect/endpoints=["tcp/megarobo.local:7447"]'
 source /opt/ros/jazzy/setup.bash
 ros2 topic list  # Should see /scan, /map, /tf
 ```
@@ -647,7 +647,24 @@ python3 robot/webcam_stream.py --device /dev/video0 --port 8081
 
 ### Windows Scripts (windows/)
 
-These scripts run **on Windows**:
+These scripts run **on Windows** (or WSL):
+
+#### start_rviz_zenoh.sh
+
+Starts RViz2 with Zenoh RMW configured to connect to the robot. Run from WSL.
+
+```bash
+# Connect to robot at default hostname (megarobo.local)
+./windows/start_rviz_zenoh.sh
+
+# Connect to robot at specific host/IP
+./windows/start_rviz_zenoh.sh 192.168.1.100
+```
+
+**Features:**
+- Auto-stops ROS2 daemon (required when switching RMW)
+- Sets up Zenoh client connection to robot's router
+- Loads navigation.rviz config
 
 #### joy_bridge.py
 
@@ -830,7 +847,7 @@ RMW_IMPLEMENTATION=rmw_zenoh_cpp ros2 topic list
 ```bash
 # Connect to robot's Zenoh router (replace IP with robot's IP)
 export RMW_IMPLEMENTATION=rmw_zenoh_cpp
-export ZENOH_CONFIG_OVERRIDE='mode="client";connect/endpoints=["tcp/192.168.60.218:7447"]'
+export ZENOH_CONFIG_OVERRIDE='mode="client";connect/endpoints=["tcp/megarobo.local:7447"]'
 source /opt/ros/jazzy/setup.bash
 
 # Verify connection
@@ -859,7 +876,7 @@ ros2 launch launch/hector_slam.launch.py
 export ZENOH_CONFIG_OVERRIDE='scouting/multicast/enabled=true'
 
 # Client mode - connect to remote router
-export ZENOH_CONFIG_OVERRIDE='mode="client";connect/endpoints=["tcp/192.168.60.218:7447"]'
+export ZENOH_CONFIG_OVERRIDE='mode="client";connect/endpoints=["tcp/megarobo.local:7447"]'
 
 # Listen on all interfaces
 export ZENOH_CONFIG_OVERRIDE='listen/endpoints=["tcp/0.0.0.0:0"];scouting/multicast/enabled=true'
