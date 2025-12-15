@@ -42,7 +42,11 @@ sudo apt install -y \
   ros-jazzy-twist-mux \
   ros-jazzy-ros-gz-bridge \
   ros-jazzy-ros-gz-image \
-  ros-jazzy-ros-gz-sim
+  ros-jazzy-ros-gz-sim \
+  ros-jazzy-laser-geometry \
+  ros-jazzy-pcl-conversions \
+  ros-jazzy-tf2-geometry-msgs \
+  ros-jazzy-rmw-zenoh-cpp
 ```
 
 ### 3. Clone and Build This Workspace
@@ -76,41 +80,38 @@ colcon build --packages-select ldlidar_stl_ros2
 
 ## Quick Start
 
-### Real Hardware Setup (LD19 Lidar + Motor Controller)
+### Real Hardware Setup (Raspberry Pi with LD19 Lidar)
 
-For running with real hardware (LD19 lidar and differential drive motors) via TCP serial bridge:
+Single command to launch everything on the robot:
 
-**On the robot (Raspberry Pi) or serial host machine:**
 ```bash
-# Install pyserial
-pip install pyserial
-
-# Run the serial bridge
-./scripts/serial_bridge.py --lidar-port /dev/ttyUSB0 --motor-port /dev/ttyUSB1
-# Or use emulator for testing without motor hardware:
-./scripts/serial_bridge.py --lidar-port /dev/ttyUSB0 --motor-port emulate
-```
-
-**On the ROS2 machine (WSL/Linux):**
-```bash
-cd ~/hector_ws
-source install/setup.bash
-
-# Start the serial bridge (auto-reconnects)
-./scripts/socat_bridge.sh &
-
-# Launch the full system
-ros2 launch launch/real_lidar_slam.launch.py
+export RMW_IMPLEMENTATION=rmw_zenoh_cpp
+source /opt/ros/jazzy/setup.bash
+source ~/ROS2-Hector-SLAM-NAV2-Demo/install/setup.bash
+ros2 launch launch/robot.launch.py
 ```
 
 This launches:
-- **LD19 Lidar**: Real lidar via `/tmp/lidar` serial port
-- **Hector SLAM**: Odometry-free SLAM for mapping
-- **NAV2**: Full navigation stack with MPPI controller
-- **Diff Drive Controller**: Motor control via `/tmp/motor` serial port
-- **RViz2**: Visualization
+- **Robot Bridge**: TCP servers for lidar (8889) and motor (8890)
+- **Zenoh Router**: DDS replacement for cross-machine communication (7447)
+- **LD19 Lidar**: Publishing `/scan` via TCP mode
+- **Hector SLAM**: Odometry-free SLAM (`/map`, `/tf`)
+- **NAV2**: Full navigation stack (controller, planner, behaviors)
 
-**Motor Protocol:** Text-based `L:<pwm>,R:<pwm>\n` where PWM is -255 to 255.
+**Without NAV2** (SLAM only):
+```bash
+ros2 launch launch/robot.launch.py nav2:=false
+```
+
+**Connect from remote machine** (for RViz, teleop):
+```bash
+export RMW_IMPLEMENTATION=rmw_zenoh_cpp
+export ZENOH_CONFIG_OVERRIDE='mode="client";connect/endpoints=["tcp/192.168.60.218:7447"]'
+source /opt/ros/jazzy/setup.bash
+ros2 topic list  # Should see /scan, /map, /tf
+```
+
+**Motor Protocol:** Megarobo binary protocol with motor enable (0x12) and velocity commands (0x11).
 
 ### Simulation: Full System Launch (Mapping + Navigation)
 
@@ -785,6 +786,110 @@ Use with real TurtleBot3 by:
 1. Skipping Gazebo launch
 2. Starting TurtleBot3 bringup: `ros2 launch turtlebot3_bringup robot.launch.py`
 3. Using same Hector SLAM configuration
+
+## Zenoh RMW for Distributed ROS2
+
+For running ROS2 nodes across multiple machines (e.g., robot + desktop), use Zenoh RMW instead of the default DDS. This provides better performance over WiFi and simpler network configuration.
+
+### Setup on Robot (Publisher)
+
+```bash
+# 1. Stop any existing ROS2 processes and daemon
+pkill -9 -f ros
+ros2 daemon stop
+
+# 2. Start the Zenoh router
+source /opt/ros/jazzy/setup.bash
+ros2 run rmw_zenoh_cpp rmw_zenohd &
+# Router will listen on tcp/0.0.0.0:7447
+
+# 3. Start nodes with Zenoh RMW
+export RMW_IMPLEMENTATION=rmw_zenoh_cpp
+export ZENOH_ROUTER_CHECK_ATTEMPTS=10
+source /opt/ros/jazzy/setup.bash
+source ~/ROS2-Hector-SLAM-NAV2-Demo/install/setup.bash
+
+# Start lidar node (TCP mode connects to robot_bridge.py on localhost:8889)
+ros2 run ldlidar_stl_ros2 ldlidar_stl_ros2_node --ros-args \
+    -p product_name:=LDLiDAR_LD19 \
+    -p topic_name:=scan \
+    -p frame_id:=base_scan \
+    -p comm_mode:=tcp \
+    -p server_ip:=127.0.0.1 \
+    -p "server_port:=\"8889\""
+
+# 4. Restart the daemon with Zenoh RMW to see topics
+RMW_IMPLEMENTATION=rmw_zenoh_cpp ros2 daemon stop
+RMW_IMPLEMENTATION=rmw_zenoh_cpp ros2 daemon start
+RMW_IMPLEMENTATION=rmw_zenoh_cpp ros2 topic list
+# Should show: /scan, /parameter_events, /rosout
+```
+
+### Setup on Remote Machine (Subscriber)
+
+```bash
+# Connect to robot's Zenoh router (replace IP with robot's IP)
+export RMW_IMPLEMENTATION=rmw_zenoh_cpp
+export ZENOH_CONFIG_OVERRIDE='mode="client";connect/endpoints=["tcp/192.168.60.218:7447"]'
+source /opt/ros/jazzy/setup.bash
+
+# Verify connection
+ros2 topic list
+# Should see /scan from robot
+
+# Echo scan data
+ros2 topic echo /scan --once
+
+# Run Hector SLAM on desktop (receives /scan, publishes /map and TF)
+ros2 launch launch/hector_slam.launch.py
+```
+
+### Zenoh Environment Variables
+
+| Variable | Description |
+|----------|-------------|
+| `RMW_IMPLEMENTATION=rmw_zenoh_cpp` | Use Zenoh instead of DDS |
+| `ZENOH_ROUTER_CHECK_ATTEMPTS=N` | Router connection attempts (0=wait forever, -1=skip) |
+| `ZENOH_CONFIG_OVERRIDE='...'` | Override Zenoh configuration |
+
+### Common Zenoh Configurations
+
+```bash
+# Enable multicast discovery (same network, no router needed)
+export ZENOH_CONFIG_OVERRIDE='scouting/multicast/enabled=true'
+
+# Client mode - connect to remote router
+export ZENOH_CONFIG_OVERRIDE='mode="client";connect/endpoints=["tcp/192.168.60.218:7447"]'
+
+# Listen on all interfaces
+export ZENOH_CONFIG_OVERRIDE='listen/endpoints=["tcp/0.0.0.0:0"];scouting/multicast/enabled=true'
+
+# Enable shared memory (same machine optimization)
+export ZENOH_CONFIG_OVERRIDE='transport/shared_memory/enabled=true'
+```
+
+### Troubleshooting Zenoh
+
+**Topics not visible:**
+```bash
+# Restart daemon with correct RMW
+RMW_IMPLEMENTATION=rmw_zenoh_cpp ros2 daemon stop
+RMW_IMPLEMENTATION=rmw_zenoh_cpp ros2 daemon start
+```
+
+**Router not starting (port in use):**
+```bash
+# Check what's using port 7447
+ss -tlnp | grep 7447
+# Kill existing router
+pkill -9 rmw_zenohd
+```
+
+**Node not using Zenoh:**
+```bash
+# Verify environment in running process
+cat /proc/$(pgrep -f your_node)/environ | tr '\0' '\n' | grep RMW
+```
 
 ## Credits
 

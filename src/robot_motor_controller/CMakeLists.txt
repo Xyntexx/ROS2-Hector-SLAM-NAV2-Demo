@@ -10,9 +10,6 @@ ament_python_install_package(${PROJECT_NAME})
 # Install Python executables
 install(PROGRAMS
   scripts/diff_drive_node.py
-  scripts/motor_bridge.py
-  scripts/megarobo_protocol.py
-  scripts/lidar_tcp_bridge.py
   DESTINATION lib/${PROJECT_NAME}
 )
 

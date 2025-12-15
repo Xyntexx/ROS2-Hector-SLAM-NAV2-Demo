@@ -12,33 +12,21 @@ from ament_index_python.packages import get_package_share_directory
 def generate_launch_description():
     workspace_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
     nav2_params_file = os.path.join(workspace_dir, 'config', 'nav2_params.yaml')
-    urdf_file = os.path.join(workspace_dir, 'urdf', 'robot.urdf')
 
-    # Read URDF file
-    with open(urdf_file, 'r') as f:
-        robot_description = f.read()
-
-    # Robot State Publisher
-    robot_state_publisher = Node(
-        package='robot_state_publisher',
-        executable='robot_state_publisher',
-        name='robot_state_publisher',
-        output='screen',
-        parameters=[{'robot_description': robot_description}]
-    )
-
-    # LD19 Lidar TCP Bridge - connects to robot_bridge.py over TCP
-    # No socat needed - direct TCP connection to robot
-    # Parses LD19 protocol and publishes LaserScan
-    lidar_tcp_bridge_node = Node(
-        package='robot_motor_controller',
-        executable='lidar_tcp_bridge.py',
-        name='lidar_tcp_bridge',
+    # LD19 Lidar node
+    ldlidar_node = Node(
+        package='ldlidar_stl_ros2',
+        executable='ldlidar_stl_ros2_node',
+        name='LD19',
         output='screen',
         parameters=[
-            {'host': '192.168.60.215'},  # Robot IP address
-            {'port': 8889},              # Lidar TCP port on robot_bridge.py
-            {'frame_id': 'lidar_link'},
+            {'product_name': 'LDLiDAR_LD19'},
+            {'topic_name': 'scan'},
+            {'frame_id': 'base_scan'},
+            {'port_name': '/tmp/lidar'},
+            {'port_baudrate': 230400},
+            {'laser_scan_dir': True},
+            {'enable_angle_crop_func': False},
         ]
     )
 
@@ -50,12 +38,12 @@ def generate_launch_description():
         arguments=['0', '0', '0.18', '0', '0', '0', 'base_link', 'base_scan']
     )
 
-    # Static transform: base_footprint -> base_link (wheel radius = 0.092m)
+    # Static transform: base_footprint -> base_link
     footprint_to_base_tf = Node(
         package='tf2_ros',
         executable='static_transform_publisher',
         name='base_footprint_to_base_link',
-        arguments=['0', '0', '0.092', '0', '0', '0', 'base_footprint', 'base_link']
+        arguments=['0', '0', '0', '0', '0', '0', 'base_footprint', 'base_link']
     )
 
     # Hector SLAM node
@@ -65,12 +53,12 @@ def generate_launch_description():
         name='hector_slam',
         parameters=[
             {'use_sim_time': False},
-            {'base_frame': 'base_link'},
-            {'odom_frame': 'base_link'},
+            {'base_frame': 'base_footprint'},
+            {'odom_frame': 'base_footprint'},
             {'map_frame': 'map'},
             {'scan_topic': '/scan'},
             {'pub_map_odom_transform': True},
-            {'use_tf_scan_transformation': True},
+            {'use_tf_scan_transformation': False},
             {'map_resolution': 0.05},
             {'map_size': 2048},
             {'map_update_distance_threshold': 0.2},
@@ -79,19 +67,22 @@ def generate_launch_description():
         output='screen'
     )
 
-    # Motor bridge - connects to robot_bridge.py over TCP
-    # No socat needed - direct TCP connection to robot
-    motor_bridge_node = Node(
+    # Differential drive controller (Megarobo protocol)
+    diff_drive_node = Node(
         package='robot_motor_controller',
-        executable='motor_bridge.py',
-        name='motor_bridge',
+        executable='diff_drive_node.py',
+        name='diff_drive_controller',
         output='screen',
         parameters=[
-            {'host': '192.168.60.215'},  # Robot IP address
-            {'port': 8890},              # Motor TCP port on robot_bridge.py
-            {'wheel_base': 0.3},         # Adjust to your robot
-            {'wheel_radius': 0.05},      # Adjust to your robot
+            {'port': '/tmp/motor'},
+            {'baudrate': 460800},
+            {'wheel_base': 0.3},  # Adjust to your robot
+            {'wheel_radius': 0.05},  # Adjust to your robot
+            {'max_rpm': 200},
             {'max_speed': 16384},
+            {'protocol': 'megarobo'},
+            {'invert_left': False},
+            {'invert_right': False},
         ]
     )
 
@@ -122,15 +113,6 @@ def generate_launch_description():
         parameters=[nav2_params_file],
     )
 
-    # NAV2 Smoother Server
-    smoother_server = Node(
-        package='nav2_smoother',
-        executable='smoother_server',
-        name='smoother_server',
-        output='screen',
-        parameters=[nav2_params_file],
-    )
-
     # NAV2 BT Navigator
     bt_navigator = Node(
         package='nav2_bt_navigator',
@@ -150,7 +132,6 @@ def generate_launch_description():
             'autostart': True,
             'node_names': [
                 'controller_server',
-                'smoother_server',
                 'planner_server',
                 'behavior_server',
                 'bt_navigator',
@@ -172,16 +153,14 @@ def generate_launch_description():
         SetEnvironmentVariable('ROS_LOCALHOST_ONLY', '1'),
 
         # Core nodes
-        robot_state_publisher,
-        lidar_tcp_bridge_node,
+        ldlidar_node,
         base_to_scan_tf,
         footprint_to_base_tf,
         hector_slam_node,
-        motor_bridge_node,
+        diff_drive_node,
 
         # NAV2 nodes
         controller_server,
-        smoother_server,
         planner_server,
         behavior_server,
         bt_navigator,

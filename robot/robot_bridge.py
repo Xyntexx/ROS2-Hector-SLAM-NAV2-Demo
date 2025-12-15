@@ -32,14 +32,8 @@ except ImportError:
     print("ERROR: pyserial not installed. Run: pip install pyserial")
     sys.exit(1)
 
-# Add parent directory to path for imports
-sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
-try:
-    from shared.megarobo_protocol import MegaroboProtocol
-except ImportError:
-    # Fallback for standalone use
-    sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
-    from megarobo_protocol import MegaroboProtocol
+# Import protocol from local module
+from megarobo_protocol import MegaroboProtocol
 
 
 # Known device VID/PID pairs
@@ -259,7 +253,9 @@ class MotorBridge:
             try:
                 self._connect_and_serve()
             except Exception as e:
+                import traceback
                 print(f"[{self.name}] Error: {e}")
+                traceback.print_exc()
             finally:
                 self._cleanup()
                 if self.running:
@@ -272,6 +268,8 @@ class MotorBridge:
         if not self.emulate:
             self.ser = serial.Serial(self.serial_port, self.baud_rate, timeout=0.1)
             print(f"[{self.name}] Opened {self.serial_port} at {self.baud_rate} baud")
+            # Auto-enable motors on connection
+            self._auto_enable_motors()
         else:
             print(f"[{self.name}] Running in EMULATOR mode")
 
@@ -364,6 +362,12 @@ class MotorBridge:
             return 3  # START + TYPE + CHECKSUM
         elif packet_type == MegaroboProtocol.PACKET_MOTOR_CONTROL:
             return 7  # START + TYPE + 4 payload + CHECKSUM
+        elif packet_type in (MegaroboProtocol.PACKET_MOTOR_ENABLE,
+                             MegaroboProtocol.PACKET_MOTOR_DISABLE,
+                             MegaroboProtocol.PACKET_MOTOR_GET_STATUS,
+                             MegaroboProtocol.PACKET_MOTOR_GET_FAULTS,
+                             MegaroboProtocol.PACKET_MOTOR_CLEAR_FAULTS):
+            return 3  # START + TYPE + CHECKSUM (no payload)
         elif packet_type == MegaroboProtocol.PACKET_LED_PULSE:
             return 6  # START + TYPE + 3 payload + CHECKSUM
         elif packet_type == MegaroboProtocol.PACKET_LED_RGB:
@@ -391,6 +395,29 @@ class MotorBridge:
 
         if packet_type == MegaroboProtocol.PACKET_PING:
             pass  # Just ACK
+
+        elif packet_type == MegaroboProtocol.PACKET_MOTOR_ENABLE:
+            print(f"[{self.name}] Motors ENABLED")
+            if not self.emulate:
+                status = self._send_to_hardware(packet)
+
+        elif packet_type == MegaroboProtocol.PACKET_MOTOR_DISABLE:
+            print(f"[{self.name}] Motors DISABLED")
+            if not self.emulate:
+                status = self._send_to_hardware(packet)
+
+        elif packet_type == MegaroboProtocol.PACKET_MOTOR_GET_STATUS:
+            if not self.emulate:
+                status = self._send_to_hardware(packet)
+
+        elif packet_type == MegaroboProtocol.PACKET_MOTOR_GET_FAULTS:
+            if not self.emulate:
+                status = self._send_to_hardware(packet)
+
+        elif packet_type == MegaroboProtocol.PACKET_MOTOR_CLEAR_FAULTS:
+            print(f"[{self.name}] Faults CLEARED")
+            if not self.emulate:
+                status = self._send_to_hardware(packet)
 
         elif packet_type == MegaroboProtocol.PACKET_MOTOR_CONTROL:
             left, right = struct.unpack('<hh', packet[2:6])
@@ -457,6 +484,44 @@ class MotorBridge:
         """Build ACK response packet."""
         checksum = packet_type ^ status
         return bytes([MegaroboProtocol.START_BYTE, packet_type, status, checksum])
+
+    def _auto_enable_motors(self):
+        """Auto-enable motors on startup and report status."""
+        if not self.ser:
+            return
+
+        # Get current motor status first
+        status_packet = MegaroboProtocol.build_motor_get_status_packet()
+        self.ser.write(status_packet)
+        self.ser.flush()
+        time.sleep(0.1)
+
+        response = self.ser.read(20)  # Status response has extra data
+        if len(response) >= 4:
+            print(f"[{self.name}] Motor status response: {response.hex()}")
+
+        # Clear any faults
+        clear_packet = MegaroboProtocol.build_motor_clear_faults_packet()
+        self.ser.write(clear_packet)
+        self.ser.flush()
+        time.sleep(0.05)
+        self.ser.read(10)  # Discard response
+
+        # Enable motors
+        enable_packet = MegaroboProtocol.build_motor_enable_packet()
+        self.ser.write(enable_packet)
+        self.ser.flush()
+        time.sleep(0.05)
+
+        response = self.ser.read(10)
+        if len(response) >= 4:
+            _, status, valid = MegaroboProtocol.parse_response(response)
+            if valid and status == MegaroboProtocol.STATUS_OK:
+                print(f"[{self.name}] Motors ENABLED successfully")
+            else:
+                print(f"[{self.name}] Motor enable failed: {MegaroboProtocol.get_status_name(status)}")
+        else:
+            print(f"[{self.name}] No response to motor enable")
 
     def _cleanup(self):
         """Clean up resources."""
