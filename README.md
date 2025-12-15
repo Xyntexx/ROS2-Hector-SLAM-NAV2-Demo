@@ -42,7 +42,11 @@ sudo apt install -y \
   ros-jazzy-twist-mux \
   ros-jazzy-ros-gz-bridge \
   ros-jazzy-ros-gz-image \
-  ros-jazzy-ros-gz-sim
+  ros-jazzy-ros-gz-sim \
+  ros-jazzy-laser-geometry \
+  ros-jazzy-pcl-conversions \
+  ros-jazzy-tf2-geometry-msgs \
+  ros-jazzy-rmw-zenoh-cpp
 ```
 
 ### 3. Clone and Build This Workspace
@@ -785,6 +789,110 @@ Use with real TurtleBot3 by:
 1. Skipping Gazebo launch
 2. Starting TurtleBot3 bringup: `ros2 launch turtlebot3_bringup robot.launch.py`
 3. Using same Hector SLAM configuration
+
+## Zenoh RMW for Distributed ROS2
+
+For running ROS2 nodes across multiple machines (e.g., robot + desktop), use Zenoh RMW instead of the default DDS. This provides better performance over WiFi and simpler network configuration.
+
+### Setup on Robot (Publisher)
+
+```bash
+# 1. Stop any existing ROS2 processes and daemon
+pkill -9 -f ros
+ros2 daemon stop
+
+# 2. Start the Zenoh router
+source /opt/ros/jazzy/setup.bash
+ros2 run rmw_zenoh_cpp rmw_zenohd &
+# Router will listen on tcp/0.0.0.0:7447
+
+# 3. Start nodes with Zenoh RMW
+export RMW_IMPLEMENTATION=rmw_zenoh_cpp
+export ZENOH_ROUTER_CHECK_ATTEMPTS=10
+source /opt/ros/jazzy/setup.bash
+source ~/ROS2-Hector-SLAM-NAV2-Demo/install/setup.bash
+
+# Start lidar node (TCP mode connects to robot_bridge.py on localhost:8889)
+ros2 run ldlidar_stl_ros2 ldlidar_stl_ros2_node --ros-args \
+    -p product_name:=LDLiDAR_LD19 \
+    -p topic_name:=scan \
+    -p frame_id:=base_scan \
+    -p comm_mode:=tcp \
+    -p server_ip:=127.0.0.1 \
+    -p "server_port:=\"8889\""
+
+# 4. Restart the daemon with Zenoh RMW to see topics
+RMW_IMPLEMENTATION=rmw_zenoh_cpp ros2 daemon stop
+RMW_IMPLEMENTATION=rmw_zenoh_cpp ros2 daemon start
+RMW_IMPLEMENTATION=rmw_zenoh_cpp ros2 topic list
+# Should show: /scan, /parameter_events, /rosout
+```
+
+### Setup on Remote Machine (Subscriber)
+
+```bash
+# Connect to robot's Zenoh router (replace IP with robot's IP)
+export RMW_IMPLEMENTATION=rmw_zenoh_cpp
+export ZENOH_CONFIG_OVERRIDE='mode="client";connect/endpoints=["tcp/192.168.60.218:7447"]'
+source /opt/ros/jazzy/setup.bash
+
+# Verify connection
+ros2 topic list
+# Should see /scan from robot
+
+# Echo scan data
+ros2 topic echo /scan --once
+
+# Run Hector SLAM on desktop (receives /scan, publishes /map and TF)
+ros2 launch launch/hector_slam.launch.py
+```
+
+### Zenoh Environment Variables
+
+| Variable | Description |
+|----------|-------------|
+| `RMW_IMPLEMENTATION=rmw_zenoh_cpp` | Use Zenoh instead of DDS |
+| `ZENOH_ROUTER_CHECK_ATTEMPTS=N` | Router connection attempts (0=wait forever, -1=skip) |
+| `ZENOH_CONFIG_OVERRIDE='...'` | Override Zenoh configuration |
+
+### Common Zenoh Configurations
+
+```bash
+# Enable multicast discovery (same network, no router needed)
+export ZENOH_CONFIG_OVERRIDE='scouting/multicast/enabled=true'
+
+# Client mode - connect to remote router
+export ZENOH_CONFIG_OVERRIDE='mode="client";connect/endpoints=["tcp/192.168.60.218:7447"]'
+
+# Listen on all interfaces
+export ZENOH_CONFIG_OVERRIDE='listen/endpoints=["tcp/0.0.0.0:0"];scouting/multicast/enabled=true'
+
+# Enable shared memory (same machine optimization)
+export ZENOH_CONFIG_OVERRIDE='transport/shared_memory/enabled=true'
+```
+
+### Troubleshooting Zenoh
+
+**Topics not visible:**
+```bash
+# Restart daemon with correct RMW
+RMW_IMPLEMENTATION=rmw_zenoh_cpp ros2 daemon stop
+RMW_IMPLEMENTATION=rmw_zenoh_cpp ros2 daemon start
+```
+
+**Router not starting (port in use):**
+```bash
+# Check what's using port 7447
+ss -tlnp | grep 7447
+# Kill existing router
+pkill -9 rmw_zenohd
+```
+
+**Node not using Zenoh:**
+```bash
+# Verify environment in running process
+cat /proc/$(pgrep -f your_node)/environ | tr '\0' '\n' | grep RMW
+```
 
 ## Credits
 

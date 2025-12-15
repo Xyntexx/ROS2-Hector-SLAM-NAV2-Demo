@@ -24,6 +24,11 @@ class MegaroboProtocol:
     # Packet types
     PACKET_PING = 0x00
     PACKET_MOTOR_CONTROL = 0x11
+    PACKET_MOTOR_ENABLE = 0x12
+    PACKET_MOTOR_DISABLE = 0x13
+    PACKET_MOTOR_GET_STATUS = 0x14
+    PACKET_MOTOR_GET_FAULTS = 0x15
+    PACKET_MOTOR_CLEAR_FAULTS = 0x16
     PACKET_LED_PULSE = 0x21
     PACKET_LED_RGB = 0x22
     PACKET_AUDIO_GET_FILE_COUNT = 0x31
@@ -95,6 +100,26 @@ class MegaroboProtocol:
     def build_ping_packet() -> bytes:
         """Build ping packet."""
         return MegaroboProtocol.build_packet(MegaroboProtocol.PACKET_PING)
+
+    @staticmethod
+    def build_motor_enable_packet() -> bytes:
+        """Build motor enable packet."""
+        return MegaroboProtocol.build_packet(MegaroboProtocol.PACKET_MOTOR_ENABLE)
+
+    @staticmethod
+    def build_motor_disable_packet() -> bytes:
+        """Build motor disable packet."""
+        return MegaroboProtocol.build_packet(MegaroboProtocol.PACKET_MOTOR_DISABLE)
+
+    @staticmethod
+    def build_motor_get_status_packet() -> bytes:
+        """Build motor get status packet."""
+        return MegaroboProtocol.build_packet(MegaroboProtocol.PACKET_MOTOR_GET_STATUS)
+
+    @staticmethod
+    def build_motor_clear_faults_packet() -> bytes:
+        """Build motor clear faults packet."""
+        return MegaroboProtocol.build_packet(MegaroboProtocol.PACKET_MOTOR_CLEAR_FAULTS)
 
     @staticmethod
     def build_led_pulse_packet(hue: int, seconds: int) -> bytes:
