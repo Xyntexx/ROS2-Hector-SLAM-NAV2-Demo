@@ -21,7 +21,9 @@ def generate_launch_description():
             {'odom_frame': 'base_footprint'},  # Use base_footprint as odom (no odometry)
             {'map_frame': 'map'},
             {'scan_topic': '/scan'},
-            {'pub_map_odom_transform': True}  # Publish map->base_footprint transform
+            {'pub_map_odom_transform': True},  # Publish map->base_footprint transform
+            {'use_tf_scan_transformation': False},  # Don't transform scan, use raw data
+            {'tf_map_scanmatch_transform_frame_name': 'scanmatcher_frame'},
         ],
         output='screen'
     )

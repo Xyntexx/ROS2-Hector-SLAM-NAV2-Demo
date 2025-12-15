@@ -31,5 +31,9 @@ Thumbs.db
 # Log files
 *.log
 
+# TF frame debug files
+frames_*.gv
+frames_*.pdf
+
 # 
 TODO.md
