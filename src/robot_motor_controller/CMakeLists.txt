@@ -12,6 +12,7 @@ install(PROGRAMS
   scripts/motor_bridge.py
   scripts/lidar_tcp_bridge.py
   scripts/nav_bridge.py
+  scripts/joy_tcp_bridge.py
   DESTINATION lib/${PROJECT_NAME}
 )
 

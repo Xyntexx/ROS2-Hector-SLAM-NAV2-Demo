@@ -559,26 +559,22 @@ hector_ws/
 │   └── start_webcam.sh                         # Webcam startup script
 ├── windows/                                    # Scripts that run ON WINDOWS
 │   └── joy_bridge.py                           # Xbox controller -> TCP sender
-├── ros/                                        # Scripts that run IN ROS2 (WSL/Linux)
-│   ├── joy_tcp_bridge.py                       # TCP -> /joy topic publisher
-│   └── motor_bridge.py                         # /cmd_vel -> TCP motor commands
-├── shared/                                     # Shared libraries
-│   └── megarobo_protocol.py                    # Megarobo UART protocol
-├── scripts/                                    # Legacy scripts (deprecated)
-│   ├── serial_bridge.py                        # Old TCP<->Serial bridge
-│   ├── socat_bridge.sh                         # Old socat-based bridge
-│   └── megarobo_protocol.py                    # Protocol (use shared/ instead)
+├── scripts/                                    # Utility scripts
+│   └── save_map.py                             # Save SLAM map to file
 ├── hector_slam_ros2/                           # Submodule: Hector SLAM ROS2
 │   ├── hector_mapping/                         # Core SLAM package (built)
 │   ├── hector_nav_msgs/                        # Message definitions (built)
 │   └── */COLCON_IGNORE                         # Other packages ignored
 ├── src/
-│   ├── robot_motor_controller/                 # Differential drive motor controller
-│   │   ├── scripts/diff_drive_node.py          # /cmd_vel to serial motor commands
-│   │   ├── package.xml
-│   │   └── CMakeLists.txt
-│   └── hector_slam_nav2_demo/                  # Demo package with bridge nodes
-│       └── scripts/joy_tcp_bridge.py           # TCP->ROS2 joy bridge (for WSL)
+│   └── robot_motor_controller/                 # ROS2 package with bridge nodes
+│       ├── scripts/
+│       │   ├── motor_bridge.py                 # /cmd_vel -> robot_control_service
+│       │   ├── lidar_tcp_bridge.py             # lidar_service -> /scan
+│       │   ├── nav_bridge.py                   # /map, /goal_pose <-> web server
+│       │   └── joy_tcp_bridge.py               # TCP joystick -> /joy
+│       ├── launch/diff_drive.launch.py         # Launch all bridge nodes
+│       ├── package.xml
+│       └── CMakeLists.txt
 ├── launch/
 │   ├── turtlebot3_hector_nav2.launch.py       # Master launch file (simulation)
 │   ├── real_lidar_slam.launch.py              # Real hardware launch (LD19 + motors + NAV2)
@@ -687,67 +683,47 @@ python windows/joy_bridge.py 192.168.1.100 9999
 - Debug output shows button presses and axis movements
 - 50Hz update rate
 
-### ROS Scripts (ros/)
+### ROS2 Bridge Nodes (src/robot_motor_controller/scripts/)
 
-These scripts run **in ROS2** (WSL/Linux):
-
-#### joy_tcp_bridge.py
-
-ROS2 node that receives Xbox controller data and publishes `/joy`.
-
-```bash
-# As ROS2 node
-ros2 run hector_slam_nav2_demo joy_tcp_bridge
-
-# Standalone (no ROS2)
-python3 ros/joy_tcp_bridge.py --port 9999
-```
+These nodes run **in ROS2** (WSL/Linux) and bridge to robot services:
 
 #### motor_bridge.py
 
-ROS2 node that subscribes to `/cmd_vel` and sends motor commands over TCP.
+Subscribes to `/cmd_vel` and sends commands to robot_control_service (JSON protocol).
 
 ```bash
-# As ROS2 node
-ros2 run hector_slam_nav2_demo motor_bridge --ros-args -p host:=192.168.1.100
-
-# With parameters
-ros2 run hector_slam_nav2_demo motor_bridge --ros-args \
-    -p host:=192.168.1.100 \
-    -p port:=8890 \
-    -p wheel_base:=0.3 \
-    -p max_speed:=16384
+ros2 run robot_motor_controller motor_bridge.py --ros-args -p host:=<robot_ip>
 ```
 
-### Shared Libraries (shared/)
+#### lidar_tcp_bridge.py
 
-#### megarobo_protocol.py
+Connects to lidar_service and publishes `/scan` (LaserScan).
 
-Megarobo UART protocol implementation. Used by robot_bridge.py and motor_bridge.py.
-
-**Packet Format:**
-```
-Motor Command: [0xAA] [0x11] [left_speed_int16] [right_speed_int16] [checksum_XOR]
-Response:      [0xAA] [0x11] [status_byte] [checksum]
+```bash
+ros2 run robot_motor_controller lidar_tcp_bridge.py --ros-args -p host:=<robot_ip>
 ```
 
-**Usage:**
-```python
-from shared.megarobo_protocol import MegaroboProtocol
+#### nav_bridge.py
 
-# Build motor command packet
-packet = MegaroboProtocol.build_motor_packet(left=1000, right=1000)
+Exposes `/map` and `/goal_pose` to web server (TCP port 8891).
 
-# Parse response
-pkt_type, status, is_valid = MegaroboProtocol.parse_response(response_bytes)
+```bash
+ros2 run robot_motor_controller nav_bridge.py --ros-args -p port:=8891
 ```
 
-### Legacy Scripts (scripts/) - Deprecated
+#### joy_tcp_bridge.py
 
-The `scripts/` folder contains older implementations. Use the new organized folders instead:
-- `serial_bridge.py` -> Use `robot/robot_bridge.py`
-- `socat_bridge.sh` -> No longer needed (robot_bridge.py handles reconnection)
-- `megarobo_protocol.py` -> Use `shared/megarobo_protocol.py`
+Receives Xbox controller data over TCP and publishes `/joy`.
+
+```bash
+ros2 run robot_motor_controller joy_tcp_bridge.py --ros-args -p port:=9999
+```
+
+#### Launch all bridges
+
+```bash
+ros2 launch robot_motor_controller diff_drive.launch.py host:=<robot_ip>
+```
 
 ## Tips for Best Results
 
