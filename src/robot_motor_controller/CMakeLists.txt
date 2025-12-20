@@ -11,6 +11,7 @@ ament_python_install_package(${PROJECT_NAME})
 install(PROGRAMS
   scripts/motor_bridge.py
   scripts/lidar_tcp_bridge.py
+  scripts/nav_bridge.py
   DESTINATION lib/${PROJECT_NAME}
 )
 

@@ -32,6 +32,12 @@ def generate_launch_description():
         description='Lidar service TCP port'
     )
 
+    nav_port_arg = DeclareLaunchArgument(
+        'nav_port',
+        default_value='8891',
+        description='Navigation bridge TCP port'
+    )
+
     wheel_base_arg = DeclareLaunchArgument(
         'wheel_base',
         default_value='0.3',
@@ -84,14 +90,27 @@ def generate_launch_description():
         }]
     )
 
+    # Navigation bridge node
+    nav_bridge_node = Node(
+        package='robot_motor_controller',
+        executable='nav_bridge.py',
+        name='nav_bridge',
+        output='screen',
+        parameters=[{
+            'port': LaunchConfiguration('nav_port'),
+        }]
+    )
+
     return LaunchDescription([
         host_arg,
         motor_port_arg,
         lidar_port_arg,
+        nav_port_arg,
         wheel_base_arg,
         wheel_radius_arg,
         max_speed_arg,
         frame_id_arg,
         motor_bridge_node,
         lidar_bridge_node,
+        nav_bridge_node,
     ])
