@@ -1,4 +1,10 @@
 #!/usr/bin/env python3
+"""
+Launch file for robot motor and lidar bridges.
+
+Launches motor_bridge and lidar_tcp_bridge nodes that connect to
+robot_control_service and lidar_service on the robot.
+"""
 
 from launch import LaunchDescription
 from launch.actions import DeclareLaunchArgument
@@ -8,16 +14,22 @@ from launch_ros.actions import Node
 
 def generate_launch_description():
     # Declare launch arguments
-    port_arg = DeclareLaunchArgument(
-        'port',
-        default_value='/tmp/motor',
-        description='Serial port for motor controller'
+    host_arg = DeclareLaunchArgument(
+        'host',
+        default_value='192.168.60.215',
+        description='Robot IP address'
     )
 
-    baudrate_arg = DeclareLaunchArgument(
-        'baudrate',
-        default_value='460800',
-        description='Serial baudrate (460800 for Megarobo protocol)'
+    motor_port_arg = DeclareLaunchArgument(
+        'motor_port',
+        default_value='8890',
+        description='Motor control service TCP port'
+    )
+
+    lidar_port_arg = DeclareLaunchArgument(
+        'lidar_port',
+        default_value='8887',
+        description='Lidar service TCP port'
     )
 
     wheel_base_arg = DeclareLaunchArgument(
@@ -32,48 +44,54 @@ def generate_launch_description():
         description='Wheel radius in meters'
     )
 
-    max_rpm_arg = DeclareLaunchArgument(
-        'max_rpm',
-        default_value='200',
-        description='Maximum motor RPM'
-    )
-
     max_speed_arg = DeclareLaunchArgument(
         'max_speed',
         default_value='16384',
-        description='Maximum motor speed value for protocol'
+        description='Maximum motor speed value'
     )
 
-    protocol_arg = DeclareLaunchArgument(
-        'protocol',
-        default_value='megarobo',
-        description='Serial protocol: text, binary, or megarobo'
+    frame_id_arg = DeclareLaunchArgument(
+        'frame_id',
+        default_value='base_scan',
+        description='Lidar frame ID'
     )
 
-    # Differential drive controller node
-    diff_drive_node = Node(
+    # Motor bridge node
+    motor_bridge_node = Node(
         package='robot_motor_controller',
-        executable='diff_drive_node.py',
-        name='diff_drive_controller',
+        executable='motor_bridge.py',
+        name='motor_bridge',
         output='screen',
         parameters=[{
-            'port': LaunchConfiguration('port'),
-            'baudrate': LaunchConfiguration('baudrate'),
+            'host': LaunchConfiguration('host'),
+            'port': LaunchConfiguration('motor_port'),
             'wheel_base': LaunchConfiguration('wheel_base'),
             'wheel_radius': LaunchConfiguration('wheel_radius'),
-            'max_rpm': LaunchConfiguration('max_rpm'),
             'max_speed': LaunchConfiguration('max_speed'),
-            'protocol': LaunchConfiguration('protocol'),
+        }]
+    )
+
+    # Lidar bridge node
+    lidar_bridge_node = Node(
+        package='robot_motor_controller',
+        executable='lidar_tcp_bridge.py',
+        name='lidar_tcp_bridge',
+        output='screen',
+        parameters=[{
+            'host': LaunchConfiguration('host'),
+            'port': LaunchConfiguration('lidar_port'),
+            'frame_id': LaunchConfiguration('frame_id'),
         }]
     )
 
     return LaunchDescription([
-        port_arg,
-        baudrate_arg,
+        host_arg,
+        motor_port_arg,
+        lidar_port_arg,
         wheel_base_arg,
         wheel_radius_arg,
-        max_rpm_arg,
         max_speed_arg,
-        protocol_arg,
-        diff_drive_node,
+        frame_id_arg,
+        motor_bridge_node,
+        lidar_bridge_node,
     ])

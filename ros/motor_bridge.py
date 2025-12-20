@@ -2,17 +2,21 @@
 """
 Motor Bridge - ROS2 node that sends motor commands to robot over TCP.
 
-Subscribes to /cmd_vel and sends motor commands to the robot_bridge running
-on the robot. Uses the Megarobo protocol over TCP.
+Subscribes to /cmd_vel and sends motor commands to robot_control_service
+running on the robot. Uses JSON protocol with priority-based command mux.
 
-This replaces socat-based serial passthrough with a smarter protocol-aware
-connection that handles reconnection gracefully.
+Protocol (JSON newline-delimited):
+    Request:  {"cmd": "set_velocity", "left": 1000, "right": 1000, "source": "ros_nav"}
+    Response: {"status": "ok", "active": true, "active_source": "ros_nav"}
+
+Priority levels (handled by robot_control_service):
+    0 - estop     : Emergency stop
+    1 - web_teleop: Manual control from browser
+    2 - ros_nav   : Autonomous navigation from ROS (this node)
 
 Usage:
-    # As ROS2 node
     ros2 run hector_slam_nav2_demo motor_bridge --ros-args -p host:=192.168.1.100
 
-    # With parameters
     ros2 run hector_slam_nav2_demo motor_bridge --ros-args \
         -p host:=192.168.1.100 \
         -p port:=8890 \
@@ -20,23 +24,11 @@ Usage:
         -p max_speed:=16384
 """
 
-import os
-import sys
+import json
 import socket
-import struct
 import threading
 import time
-import math
-
-# Add parent directory for imports
-sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
-
-try:
-    from shared.megarobo_protocol import MegaroboProtocol
-except ImportError:
-    # Fallback
-    sys.path.insert(0, os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), 'shared'))
-    from megarobo_protocol import MegaroboProtocol
+import sys
 
 try:
     import rclpy
@@ -49,7 +41,7 @@ except ImportError:
 
 
 class MotorBridgeClient:
-    """TCP client that sends motor commands to robot_bridge."""
+    """TCP client that sends motor commands to robot_control_service."""
 
     def __init__(self, host='localhost', port=8890, wheel_base=0.3,
                  wheel_radius=0.05, max_speed=16384, ros_node=None):
@@ -63,6 +55,7 @@ class MotorBridgeClient:
         self.sock = None
         self.sock_lock = threading.Lock()
         self.connected = False
+        self.motors_enabled = False
 
         self.last_cmd_time = 0
         self.cmd_timeout = 0.5  # Stop if no command for 500ms
@@ -79,6 +72,7 @@ class MotorBridgeClient:
     def stop(self):
         """Stop the client."""
         self.running = False
+        self._send_command({'cmd': 'stop', 'source': 'ros_nav'})
         self._disconnect()
 
     def send_velocity(self, linear_x, angular_z):
@@ -112,33 +106,53 @@ class MotorBridgeClient:
         self.last_cmd_time = time.time()
 
     def _send_motor_command(self, left, right):
-        """Send motor command packet."""
-        packet = MegaroboProtocol.build_motor_packet(left, right)
+        """Send motor velocity command."""
+        cmd = {
+            'cmd': 'set_velocity',
+            'left': left,
+            'right': right,
+            'source': 'ros_nav'
+        }
+        response = self._send_command(cmd)
+        if response:
+            if response.get('status') != 'ok':
+                self._log(f"Motor error: {response.get('message', 'unknown')}")
+            elif not response.get('active', True):
+                # Lower priority source is active - log occasionally
+                pass
 
+    def _send_command(self, cmd):
+        """Send JSON command and receive response."""
         with self.sock_lock:
             if not self.sock:
-                return False
+                return None
 
             try:
-                self.sock.sendall(packet)
+                # Send command
+                data = (json.dumps(cmd) + '\n').encode('utf-8')
+                self.sock.sendall(data)
 
-                # Wait for ACK (non-blocking, just drain the response)
-                self.sock.settimeout(0.05)
+                # Receive response
+                self.sock.settimeout(0.1)
                 try:
-                    response = self.sock.recv(4)
-                    if len(response) >= 4:
-                        _, status, is_valid = MegaroboProtocol.parse_response(response)
-                        if is_valid and status != MegaroboProtocol.STATUS_OK:
-                            self._log(f"Motor error: {MegaroboProtocol.get_status_name(status)}")
+                    response_data = b''
+                    while b'\n' not in response_data:
+                        chunk = self.sock.recv(1024)
+                        if not chunk:
+                            break
+                        response_data += chunk
+
+                    if response_data:
+                        return json.loads(response_data.decode('utf-8').strip())
                 except socket.timeout:
                     pass
 
-                return True
+                return None
 
             except Exception as e:
                 self._log(f"Send error: {e}")
                 self._disconnect()
-                return False
+                return None
 
     def _connection_loop(self):
         """Background thread that maintains connection."""
@@ -158,7 +172,7 @@ class MotorBridgeClient:
             time.sleep(0.1)
 
     def _connect(self):
-        """Attempt to connect to robot_bridge."""
+        """Attempt to connect to robot_control_service."""
         try:
             sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
             sock.settimeout(5.0)
@@ -171,12 +185,24 @@ class MotorBridgeClient:
 
             self._log(f"Connected to {self.host}:{self.port}")
 
+            # Enable motors on connect
+            self._enable_motors()
+
         except Exception as e:
             self._log(f"Connection failed: {e}")
             self.connected = False
 
+    def _enable_motors(self):
+        """Enable motors after connecting."""
+        response = self._send_command({'cmd': 'enable_motors'})
+        if response and response.get('status') == 'ok':
+            self.motors_enabled = True
+            self._log("Motors enabled")
+        else:
+            self._log("Failed to enable motors")
+
     def _disconnect(self):
-        """Disconnect from robot_bridge."""
+        """Disconnect from robot_control_service."""
         with self.sock_lock:
             if self.sock:
                 try:
@@ -185,6 +211,7 @@ class MotorBridgeClient:
                     pass
                 self.sock = None
             self.connected = False
+            self.motors_enabled = False
 
     def _log(self, msg):
         """Log a message."""

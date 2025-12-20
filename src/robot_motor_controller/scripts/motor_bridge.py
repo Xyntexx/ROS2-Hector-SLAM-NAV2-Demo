@@ -2,40 +2,33 @@
 """
 Motor Bridge - ROS2 node that sends motor commands to robot over TCP.
 
-Subscribes to /cmd_vel and sends motor commands to the robot_bridge running
-on the robot. Uses the Megarobo protocol over TCP.
+Subscribes to /cmd_vel and sends motor commands to robot_control_service
+running on the robot. Uses JSON protocol with priority-based command mux.
 
-This replaces socat-based serial passthrough with a smarter protocol-aware
-connection that handles reconnection gracefully.
+Protocol (JSON newline-delimited):
+    Request:  {"cmd": "set_velocity", "left": 1000, "right": 1000, "source": "ros_nav"}
+    Response: {"status": "ok", "active": true, "active_source": "ros_nav"}
+
+Priority levels (handled by robot_control_service):
+    0 - estop     : Emergency stop
+    1 - web_teleop: Manual control from browser
+    2 - ros_nav   : Autonomous navigation from ROS (this node)
 
 Usage:
-    # As ROS2 node
     ros2 run hector_slam_nav2_demo motor_bridge --ros-args -p host:=192.168.1.100
 
-    # With parameters
     ros2 run hector_slam_nav2_demo motor_bridge --ros-args \
         -p host:=192.168.1.100 \
         -p port:=8890 \
         -p wheel_base:=0.3 \
-        -p max_speed:=16383
+        -p max_speed:=16384
 """
 
-import os
-import sys
+import json
 import socket
-import struct
 import threading
 import time
-import math
-
-# Add script directory for imports (for installed ROS package)
-sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
-
-try:
-    from shared.megarobo_protocol import MegaroboProtocol
-except ImportError:
-    # Fallback for ROS package install or standalone use
-    from megarobo_protocol import MegaroboProtocol
+import sys
 
 try:
     import rclpy
@@ -48,10 +41,10 @@ except ImportError:
 
 
 class MotorBridgeClient:
-    """TCP client that sends motor commands to robot_bridge."""
+    """TCP client that sends motor commands to robot_control_service."""
 
     def __init__(self, host='localhost', port=8890, wheel_base=0.3,
-                 wheel_radius=0.05, max_speed=16383, ros_node=None):
+                 wheel_radius=0.05, max_speed=16384, ros_node=None):
         self.host = host
         self.port = port
         self.wheel_base = wheel_base
@@ -62,16 +55,10 @@ class MotorBridgeClient:
         self.sock = None
         self.sock_lock = threading.Lock()
         self.connected = False
+        self.motors_enabled = False
 
         self.last_cmd_time = 0
         self.cmd_timeout = 0.5  # Stop if no command for 500ms
-
-        # Velocity smoothing (exponential moving average)
-        # Lower alpha = smoother, higher = more responsive
-        self.smooth_alpha_linear = 0.10   # Very smooth for linear (reduce jitter)
-        self.smooth_alpha_angular = 0.25  # Responsive but smooth turns
-        self.smooth_linear = 0.0
-        self.smooth_angular = 0.0
 
         # Start connection thread
         self.running = True
@@ -85,6 +72,7 @@ class MotorBridgeClient:
     def stop(self):
         """Stop the client."""
         self.running = False
+        self._send_command({'cmd': 'stop', 'source': 'ros_nav'})
         self._disconnect()
 
     def send_velocity(self, linear_x, angular_z):
@@ -95,74 +83,81 @@ class MotorBridgeClient:
             linear_x: Linear velocity in m/s
             angular_z: Angular velocity in rad/s
         """
-        # Apply exponential moving average smoothing (separate alphas)
-        self.smooth_linear = self.smooth_alpha_linear * linear_x + (1 - self.smooth_alpha_linear) * self.smooth_linear
-        self.smooth_angular = self.smooth_alpha_angular * angular_z + (1 - self.smooth_alpha_angular) * self.smooth_angular
+        # Differential drive kinematics
+        left_vel = linear_x - (angular_z * self.wheel_base / 2.0)
+        right_vel = linear_x + (angular_z * self.wheel_base / 2.0)
 
-        # Use smoothed values
-        linear_x = self.smooth_linear
-        angular_z = self.smooth_angular
+        # Convert to wheel angular velocity (rad/s)
+        left_wheel_vel = left_vel / self.wheel_radius
+        right_wheel_vel = right_vel / self.wheel_radius
 
-        # Differential drive kinematics: convert to wheel linear velocities
-        # Linear scaling: measured 110% after first correction, so reduce to 1.05
-        # Angular scaling: measured 46% of commanded, so multiply by ~2.17
-        linear_scale = 1.05
-        angular_scale = 2.17
-        left_vel = (linear_x * linear_scale) - (angular_z * self.wheel_base / 2.0 * angular_scale)
-        right_vel = (linear_x * linear_scale) + (angular_z * self.wheel_base / 2.0 * angular_scale)
+        # Calculate max wheel velocity for scaling
+        max_wheel_vel = 2.0 / self.wheel_radius  # Assuming 2 m/s max linear
 
         # Scale to motor speed units
-        # Motor max (16383) = 2 km/h = 0.556 m/s linear
-        # So: motor_value = (linear_vel / 0.556) * 16383
-        max_linear_vel = 2.0 / 3.6  # 2 km/h = 0.556 m/s
-        left_speed = int((left_vel / max_linear_vel) * self.max_speed)
-        right_speed = int((right_vel / max_linear_vel) * self.max_speed)
+        left_speed = int((left_wheel_vel / max_wheel_vel) * self.max_speed)
+        right_speed = int((right_wheel_vel / max_wheel_vel) * self.max_speed)
 
         # Clamp
         left_speed = max(-self.max_speed, min(self.max_speed, left_speed))
         right_speed = max(-self.max_speed, min(self.max_speed, right_speed))
 
-        # Log commanded velocity vs motor values
-        linear_kmh = linear_x * 3.6
-        self._log(f"cmd: {linear_x:.2f} m/s ({linear_kmh:.1f} km/h), w={angular_z:.2f} rad/s -> L={left_speed} R={right_speed}")
-
         self._send_motor_command(left_speed, right_speed)
         self.last_cmd_time = time.time()
 
     def _send_motor_command(self, left, right):
-        """Send motor command packet."""
-        packet = MegaroboProtocol.build_motor_packet(left, right)
+        """Send motor velocity command."""
+        cmd = {
+            'cmd': 'set_velocity',
+            'left': left,
+            'right': right,
+            'source': 'ros_nav'
+        }
+        response = self._send_command(cmd)
+        if response:
+            if response.get('status') != 'ok':
+                self._log(f"Motor error: {response.get('message', 'unknown')}")
+            elif not response.get('active', True):
+                # Lower priority source is active - log occasionally
+                pass
 
+    def _send_command(self, cmd):
+        """Send JSON command and receive response."""
         with self.sock_lock:
             if not self.sock:
-                return False
+                return None
 
             try:
-                self.sock.sendall(packet)
+                # Send command
+                data = (json.dumps(cmd) + '\n').encode('utf-8')
+                self.sock.sendall(data)
 
-                # Wait for ACK (non-blocking, just drain the response)
-                self.sock.settimeout(0.05)
+                # Receive response
+                self.sock.settimeout(0.1)
                 try:
-                    response = self.sock.recv(4)
-                    if len(response) >= 4:
-                        _, status, is_valid = MegaroboProtocol.parse_response(response)
-                        if is_valid and status != MegaroboProtocol.STATUS_OK:
-                            self._log(f"Motor error: {MegaroboProtocol.get_status_name(status)}")
+                    response_data = b''
+                    while b'\n' not in response_data:
+                        chunk = self.sock.recv(1024)
+                        if not chunk:
+                            break
+                        response_data += chunk
+
+                    if response_data:
+                        return json.loads(response_data.decode('utf-8').strip())
                 except socket.timeout:
                     pass
 
-                return True
+                return None
 
             except Exception as e:
                 self._log(f"Send error: {e}")
                 self._disconnect()
-                return False
+                return None
 
     def _connection_loop(self):
         """Background thread that maintains connection."""
         while self.running:
             if not self.connected:
-                self._log(f"Reconnecting to {self.host}:{self.port}...")
                 self._connect()
             time.sleep(1)
 
@@ -177,7 +172,7 @@ class MotorBridgeClient:
             time.sleep(0.1)
 
     def _connect(self):
-        """Attempt to connect to robot_bridge."""
+        """Attempt to connect to robot_control_service."""
         try:
             sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
             sock.settimeout(5.0)
@@ -190,16 +185,24 @@ class MotorBridgeClient:
 
             self._log(f"Connected to {self.host}:{self.port}")
 
+            # Enable motors on connect
+            self._enable_motors()
+
         except Exception as e:
             self._log(f"Connection failed: {e}")
-            try:
-                sock.close()
-            except:
-                pass
             self.connected = False
 
+    def _enable_motors(self):
+        """Enable motors after connecting."""
+        response = self._send_command({'cmd': 'enable_motors'})
+        if response and response.get('status') == 'ok':
+            self.motors_enabled = True
+            self._log("Motors enabled")
+        else:
+            self._log("Failed to enable motors")
+
     def _disconnect(self):
-        """Disconnect from robot_bridge."""
+        """Disconnect from robot_control_service."""
         with self.sock_lock:
             if self.sock:
                 try:
@@ -208,6 +211,7 @@ class MotorBridgeClient:
                     pass
                 self.sock = None
             self.connected = False
+            self.motors_enabled = False
 
     def _log(self, msg):
         """Log a message."""
@@ -228,7 +232,7 @@ class MotorBridgeNode(Node):
         self.declare_parameter('port', 8890)
         self.declare_parameter('wheel_base', 0.3)
         self.declare_parameter('wheel_radius', 0.05)
-        self.declare_parameter('max_speed', 16383)
+        self.declare_parameter('max_speed', 16384)
 
         # Get parameters
         host = self.get_parameter('host').value
